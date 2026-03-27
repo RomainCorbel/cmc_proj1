@@ -56,12 +56,13 @@ class WaveNetwork(NeuralNetwork):
 
         """
 
-        act_left = 0
-        act_right = 0
+        joint_indices = np.arange(self.n_body_joints)
+        phase_offset = 2 * np.pi * joint_indices / (self.n_body_joints / self.twl)
+        wave = self.amp * np.sin(2 * np.pi * self.freq * time - phase_offset)
+        act_left = np.maximum(wave, 0)
+        act_right = np.maximum(-wave, 0)
 
-        pylog.warning("TODO:1.1 Use self.freq, self.amp, self.twl and self.n_body_joints to implement a wave controller")
-
-        # implicit muscle activation
+        
         self.data.state.array[iteration, self.left_body_idx] = act_left
         self.data.state.array[iteration, self.right_body_idx] = act_right
 
