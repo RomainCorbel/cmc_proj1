@@ -97,13 +97,13 @@ def post_processing():
         cot)
 
     #Angles
-    n_cycles = 3
+    n_cycles = 6
     T = 1.0 / np.mean(freq) 
     t_end = n_cycles * T
     mask = sim_times <= t_end
 
     fig1, ax1 = plt.subplots(figsize=(10, 4))
-    for j in range(sensor_data_joints_positions.shape[1]):
+    for j in range(8):
         ax1.plot(sim_times[mask], sensor_data_joints_positions[mask, j],
                  label=f'joint {j}')
     ax1.set_xlabel('Time (s)')
@@ -124,7 +124,6 @@ def post_processing():
     ax2.set_ylabel('y (m)')
     ax2.set_title('CoM trajectory (2D)')
     ax2.legend()
-    ax2.set_aspect('equal')
     plt.tight_layout()
     plt.savefig(BASE_PATH + 'com_trajectory.png')
 
