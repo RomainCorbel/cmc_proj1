@@ -324,8 +324,13 @@ def compute_mechanical_energy_and_cot(times: np.ndarray,
     Compute the integration of traveled distance for the CoM of the robot (useful varibles: LINKS_MASSES, TOTAL_MASS)
     """
 
-    pylog.warning("TODO: 1.2 Compute energy and CoT")
-    energy = np.inf
-    cot = np.inf
+    dt = times[1] - times[0]
+    power_positive = np.maximum(joints_torques * joints_velocities, 0)
+    energy = dt * np.sum(power_positive)
+    com_positions = np.average(links_positions, axis=1, weights=LINKS_MASSES)  
+
+    D_fwd = com_positions[-1, 0] - com_positions[0, 0]
+
+    cot = energy / D_fwd if D_fwd > 0 else np.inf
     return energy, cot
 

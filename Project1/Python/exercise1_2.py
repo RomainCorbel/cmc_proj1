@@ -115,7 +115,7 @@ def exercise1_2(**kwargs):
         'amp': example_amp_range,
     }
     n_workers = 8
-    """
+    
     run_multiple(
         max_workers=n_workers,
         controller=base_controller,
@@ -123,7 +123,7 @@ def exercise1_2(**kwargs):
         parameter_grid=parameter_grid_example,
         common_kwargs={'fast': True, 'headless': True},
     )
-    """
+    
     pylog.warning("TODO: 1.3 Analyze the results of multiple simulations")
 
 
