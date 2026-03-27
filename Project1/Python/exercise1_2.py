@@ -107,15 +107,15 @@ def exercise1_2(**kwargs):
     # You can replace range with list of length 1 to keep some parameters fixed
     # while testing others O(n^2) or O(n)
 
-    example_twl_range = np.linspace(0.2, 1.5, 5)
-    example_amp_range = np.linspace(1.0, 4.0, 5)
+    example_twl_range = np.linspace(0.2, 1.5, 10)
+    example_amp_range = np.linspace(1.0, 4.0, 10)
 
     parameter_grid_example = {
         'twl': example_twl_range,
         'amp': example_amp_range,
     }
     n_workers = 8
-    
+    """
     run_multiple(
         max_workers=n_workers,
         controller=base_controller,
@@ -123,7 +123,7 @@ def exercise1_2(**kwargs):
         parameter_grid=parameter_grid_example,
         common_kwargs={'fast': True, 'headless': True},
     )
-    
+    """
     pylog.warning("TODO: 1.3 Analyze the results of multiple simulations")
 
 

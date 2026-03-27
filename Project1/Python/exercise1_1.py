@@ -76,6 +76,7 @@ def post_processing():
         joints_torques=sensor_data_joints_torques,
         joints_velocities=sensor_data_joints_velocities,
     )
+    print("energy: ", energy, "cot: ", cot)
 
     pylog.warning("TODO: 1.2: Verify the computed metrics are consistent with the expected values")
     print('Estimated neural metrics:')
@@ -128,16 +129,16 @@ def post_processing():
     plt.savefig(BASE_PATH + 'com_trajectory.png')
 
     plt.show()
-
+    print(np.linalg.norm(com_xy[-1] - com_xy[0]))  # total distance traveled by CoM
 
 def main(**kwargs):
     """ex1.1 main"""
     os.makedirs(PLOT_PATH, exist_ok=True)
     controller = {
         'loader': 'cmc_controllers.wave_controller.WaveController',
-        'config': {'freq': 2.0,
-                   'twl': 1.0,
-                   'amp': 2.0}
+        'config': {'freq': 1.5,
+                   'twl': 0.2,
+                   'amp': 1.0}
     }
 
     runsim(

@@ -323,14 +323,13 @@ def compute_mechanical_energy_and_cot(times: np.ndarray,
     Only take POSITIVE values during energy consumption (no energy storing of the active part)
     Compute the integration of traveled distance for the CoM of the robot (useful varibles: LINKS_MASSES, TOTAL_MASS)
     """
-
     dt = times[1] - times[0]
+
     power_positive = np.maximum(joints_torques * joints_velocities, 0)
     energy = dt * np.sum(power_positive)
-    com_positions = np.average(links_positions, axis=1, weights=LINKS_MASSES)  
 
-    D_fwd = com_positions[-1, 0] - com_positions[0, 0]
+    com_pos = np.average(links_positions, axis=1, weights=LINKS_MASSES)
+    d_fwd = np.linalg.norm(com_pos[-1] - com_pos[0])
+    cot = energy / d_fwd if d_fwd > 1e-9 else np.nan
 
-    cot = energy / D_fwd if D_fwd > 0 else np.inf
     return energy, cot
-
