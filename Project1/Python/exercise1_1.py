@@ -4,7 +4,7 @@ import os
 import pickle
 import h5py
 import matplotlib.pyplot as plt
-
+import numpy as np
 from farms_core.utils.profile import profile
 from farms_core import pylog
 
@@ -96,7 +96,39 @@ def post_processing():
         '\nCoT: ',
         cot)
 
-    pylog.warning("TODO: 1.2: Plot joint angles + CoM trajectory")
+    #Angles
+    n_cycles = 3
+    T = 1.0 / np.mean(freq) 
+    t_end = n_cycles * T
+    mask = sim_times <= t_end
+
+    fig1, ax1 = plt.subplots(figsize=(10, 4))
+    for j in range(sensor_data_joints_positions.shape[1]):
+        ax1.plot(sim_times[mask], sensor_data_joints_positions[mask, j],
+                 label=f'joint {j}')
+    ax1.set_xlabel('Time (s)')
+    ax1.set_ylabel('Joint angle (rad)')
+    ax1.set_title('Joint angles over a few cycles')
+    ax1.legend(loc='upper right', fontsize=7, ncol=2)
+    plt.tight_layout()
+    plt.savefig(BASE_PATH + 'joint_angles.png')
+
+    #CoM trajectory
+    com_xy = np.mean(sensor_data_links_positions[:, :, :2], axis=1)
+
+    fig2, ax2 = plt.subplots(figsize=(6, 6))
+    ax2.plot(com_xy[:, 0], com_xy[:, 1], linewidth=1.5)
+    ax2.scatter(com_xy[0, 0], com_xy[0, 1], color='green', zorder=5, label='start')
+    ax2.scatter(com_xy[-1, 0], com_xy[-1, 1], color='red', zorder=5, label='end')
+    ax2.set_xlabel('x (m)')
+    ax2.set_ylabel('y (m)')
+    ax2.set_title('CoM trajectory (2D)')
+    ax2.legend()
+    ax2.set_aspect('equal')
+    plt.tight_layout()
+    plt.savefig(BASE_PATH + 'com_trajectory.png')
+
+    plt.show()
 
 
 def main(**kwargs):
