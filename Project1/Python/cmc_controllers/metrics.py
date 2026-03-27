@@ -118,9 +118,8 @@ def get_phase_lag(
 
     xcorr = np.correlate(sig2, sig1, "full")
     n_lag = np.argmax(xcorr) - len(xcorr) // 2
-
-    phase_lag = 0
-    pylog.warning("TODO: 1.2")
+    delta_t = n_lag * sig_dt
+    phase_lag = 2 * np.pi * sig_freq * delta_t # Je ne suis pas sur que je prends la bonne fréquence
     return phase_lag
 
 
