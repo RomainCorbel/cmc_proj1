@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-
+from cmc_controllers.plot_utils import plot_results_EXO2_1
 
 from farms_core import pylog
 from farms_core.utils.profile import profile
@@ -18,7 +18,7 @@ BASE_PATH = 'logs/exercise2_1/'
 PLOT_PATH = 'results'
 
 
-def post_processing(base_path):
+def post_processing(base_path,plot = True):
     """Post processing"""
     # Load HDF5
     sim_result = base_path + 'simulation.hdf5'
@@ -33,9 +33,13 @@ def post_processing(base_path):
     with open(base_path + "controller.pkl", "rb") as f:
         controller_data = pickle.load(f)
 
+    if plot:
+        plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  base_path, controller_data)
+
 
 def main(**kwargs):
     """Run exercise 2.1 simulation and post-processing pipeline."""
+    plot = kwargs.pop('plot', True)
     os.makedirs(PLOT_PATH, exist_ok=True)
     controller = {
         'loader': 'cmc_controllers.CPG_controller.CPGController',
@@ -60,12 +64,13 @@ def main(**kwargs):
                 size=16)}}
 
     tic = time.time()
-    runsim(
-        controller=controller,
-        base_path=BASE_PATH,
-        recording='exercise2_1.mp4',
-    )
-    post_processing(BASE_PATH)
+
+    # runsim(
+    #     controller=controller,
+    #     base_path=BASE_PATH,
+    #     recording='exercise2_1.mp4',
+    # )
+    post_processing(BASE_PATH, plot=plot)
     pylog.info('Total simulation time: %s [s]', time.time() - tic)
 
 
@@ -73,11 +78,8 @@ def exercise2_1(**kwargs):
     """ex2.1 main"""
     profile(function=main, profile_filename='',
             fast=kwargs.pop('fast', False),
-            headless=kwargs.pop('headless', False),)
-    plot = kwargs.pop('plot', False)
-    if plot:
-        plt.show()
-
+            headless=kwargs.pop('headless', False),
+            **kwargs)
 
 if __name__ == '__main__':
     exercise2_1(plot=True)
