@@ -95,8 +95,10 @@ class CPGNetwork(NeuralNetwork):
         self.drive_right = drive_right
 
     def motor_output(self, phase, amplitude):
-        pylog.warning("TODO 2.1 CPG motor output implementation")
-        oscillator_output = np.zeros_like(phase)
+        # pylog.warning("TODO 2.1 CPG motor output implementation")
+        # Eq. 10: Mi = ri * (1 + cos(theta_i))
+        # oscillator_output = np.zeros_like(phase)
+        oscillator_output = amplitude * (1 + np.cos(phase))
         return np.array(oscillator_output[self.left_body_idx]), np.array(
             oscillator_output[self.right_body_idx])
 
@@ -112,7 +114,47 @@ class CPGNetwork(NeuralNetwork):
 
         dstates = np.zeros_like(state)
 
-        pylog.warning("TODO 2.1 CPG ODE implementation")
+        # pylog.warning("TODO 2.1 CPG ODE implementation")
+
+        # Compute nominal frequencies (Eq. 7) and nominal amplitudes (Eq. 8)
+        # fi = G_freq * (d - d_low) + offset_freq  if d_low <= d <= d_high, else 0
+        # Ri = G_amp  * (d - d_low) + offset_amp   if d_low <= d <= d_high, else 0
+        drive = np.array([self.drive_left] * self.n_body_joints + [self.drive_right] * self.n_body_joints)
+        in_range = (drive >= self.d_low) & (drive <= self.d_high)
+
+        nominal_frequencies = np.where(
+            in_range,
+            self.G_freq * (drive - self.d_low) + self.offset_freq,
+            0.0
+        )
+        nominal_amplitudes = np.where(
+            in_range,
+            self.G_amp * (drive - self.d_low) + self.offset_amp,
+            0.0
+        )
+
+        # Amplitude dynamics (Eq. 6): dr_i = a_i * (R_i - r_i)
+        dstates[self.n_oscillators:2*self.n_oscillators] = (
+            self.a_rate * (nominal_amplitudes - amplitudes)
+        )
+
+        # Phase dynamics (Eq. 3): dtheta_i = 2*pi*f_i + sum_j r_j * w_ij * sin(theta_j - theta_i - phi_ij)
+        # coupling_term = np.zeros(self.n_oscillators)
+        # for i in range(self.n_oscillators):
+        #     for j in range(self.n_oscillators):
+        #         if self.coupling_weights[i, j] != 0:
+        #             coupling_term[i] += (
+        #                 amplitudes[j]
+        #                 * self.coupling_weights[i, j]
+        #                 * np.sin(phases[j] - phases[i] - self.phase_bias[i, j])
+        #             )
+        phase_diff = phases[np.newaxis, :] - phases[:, np.newaxis] - self.phase_bias  # (n, n)
+
+        coupling_term = np.sum(
+            amplitudes[np.newaxis, :] * self.coupling_weights * np.sin(phase_diff),
+            axis=1
+        )  # (n,)
+        dstates[:self.n_oscillators] = 2 * np.pi * nominal_frequencies + coupling_term
 
         pylog.warning("TODO 3.1 Stretch feedback")
 
