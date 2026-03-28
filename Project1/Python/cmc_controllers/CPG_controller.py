@@ -106,7 +106,7 @@ class CPGNetwork(NeuralNetwork):
             G_amp_full * (drive - d_low) + offset_amp_full,
             0
         )
-        
+
         self.coupling_weights = np.zeros((self.n_oscillators, self.n_oscillators))
         for i in range(n_body_joints):
             l = i                    
@@ -125,7 +125,7 @@ class CPGNetwork(NeuralNetwork):
 
 
         self.phase_bias = np.zeros((self.n_oscillators, self.n_oscillators))
-        PB = PL / (n_body_joints - 1)
+        PB = PL[0] / (n_body_joints - 1)
         for i in range(n_body_joints):
             l = i
             r = i + n_body_joints
@@ -179,7 +179,8 @@ class CPGNetwork(NeuralNetwork):
         G_amp_full = np.concatenate([G_amp, G_amp])
         offset_freq_full = np.concatenate([offset_freq, offset_freq])
         offset_amp_full = np.concatenate([offset_amp, offset_amp])
-        
+        a_rate = self.a_rate
+        a_rate_full = np.concatenate([a_rate, a_rate])
         drive = np.array([self.drive_left] * self.n_body_joints + [self.drive_right] * self.n_body_joints)
         in_range = (drive >= self.d_low) & (drive <= self.d_high)
 
@@ -196,7 +197,7 @@ class CPGNetwork(NeuralNetwork):
 
         # Amplitude dynamics (Eq. 6): dr_i = a_i * (R_i - r_i)
         dstates[self.n_oscillators:2*self.n_oscillators] = (
-            self.a_rate * (nominal_amplitudes - amplitudes)
+            a_rate_full * (nominal_amplitudes - amplitudes)
         )
 
         # Phase dynamics (Eq. 3): dtheta_i = 2*pi*f_i + sum_j r_j * w_ij * sin(theta_j - theta_i - phi_ij)
@@ -250,7 +251,7 @@ class CPGNetwork(NeuralNetwork):
         pylog.warning("TODO 3.3 Disruption to sensors")
 
         pylog.warning("TODO 3.3 Set ODE parameters with stretch value")
-        # self.solver.set_f_params(np.zeros(self.n_oscillators))
+        self.solver.set_f_params(np.zeros(self.n_oscillators))
 
         # Integrate ODE using dopri5 solver
         self.solver.integrate(time + timestep)
