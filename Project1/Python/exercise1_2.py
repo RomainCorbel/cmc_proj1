@@ -7,7 +7,7 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
+from cmc_controllers.plot_utils import plot_gridsearch_heatmaps
 from farms_core import pylog
 
 from simulate import run_multiple
@@ -102,17 +102,16 @@ def exercise1_2(**kwargs):
             'freq': 1.5,
             'twl': 1.0,
             'amp': 1.0}}
-    pylog.warning("TODO: 1.2 Adapt the parameter space according to needs.")
     # Hint: You don't need to test all combinations of parameters with complexity of O(n^3)
     # You can replace range with list of length 1 to keep some parameters fixed
     # while testing others O(n^2) or O(n)
 
-    example_twl_range = np.linspace(0.2, 1.5, 10)
-    example_amp_range = np.linspace(1.0, 4.0, 10)
+    twl_range = np.linspace(0.2, 1.5, 10)
+    amp_range = np.linspace(1.0, 4.0, 10)
 
     parameter_grid_example = {
-        'twl': example_twl_range,
-        'amp': example_amp_range,
+        'twl': twl_range,
+        'amp': amp_range,
     }
     n_workers = 8
     """
@@ -124,45 +123,14 @@ def exercise1_2(**kwargs):
         common_kwargs={'fast': True, 'headless': True},
     )
     """
-    pylog.warning("TODO: 1.3 Analyze the results of multiple simulations")
 
 
-    n_twl = len(example_twl_range)
-    n_amp = len(example_amp_range)
-
-    # 3 tableaux : lignes = twl, colonnes = amp
-    grid_speed    = np.zeros((n_twl, n_amp))
-    grid_ipl      = np.zeros((n_twl, n_amp))
-    grid_cot      = np.zeros((n_twl, n_amp))
-
-    for i, twl in enumerate(example_twl_range):
-        for j, amp in enumerate(example_amp_range):
-            val1, val2, val3 = get_metrics(twl, amp)
-            grid_speed[i, j] = val1
-            grid_ipl[i, j]   = val3
-            grid_cot[i, j]   = val2
-
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-
-    grids  = [grid_speed, grid_ipl, grid_cot]
-    titles = ['Forward speed (m/s)', 'IPL (rad)', 'CoT (J/m)']
-
-    for ax, grid, title in zip(axes, grids, titles):
-        im = ax.imshow(grid, aspect='auto', origin='lower', cmap='viridis')
-        plt.colorbar(im, ax=ax)
-        
-        ax.set_xticks(range(n_amp))
-        ax.set_xticklabels([f'{a:.2f}' for a in example_amp_range], rotation=45)
-        ax.set_yticks(range(n_twl))
-        ax.set_yticklabels([f'{t:.2f}' for t in example_twl_range])
-        
-        ax.set_xlabel('Amplitude')
-        ax.set_ylabel('TWL')
-        ax.set_title(title)
-
-    plt.tight_layout()
-    plt.savefig(BASE_PATH + 'gridsearch_heatmaps.png', dpi=150)
-    plt.show()
+    plot_gridsearch_heatmaps(
+        twl_range=twl_range,
+        amp_range=amp_range,
+        get_metrics=get_metrics,
+        base_path=BASE_PATH,
+    )
     
 if __name__ == '__main__':
     exercise1_2(plot=True)
