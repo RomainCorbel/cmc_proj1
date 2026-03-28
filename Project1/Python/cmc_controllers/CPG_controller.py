@@ -84,13 +84,59 @@ class CPGNetwork(NeuralNetwork):
         np.random.seed(self.random_seed)
 
         # CPG controller parameters
-        self.nominal_amplitudes = np.zeros(self.n_oscillators)
-        self.nominal_frequencies = np.zeros(self.n_oscillators)
-        self.coupling_weights = np.zeros(
-            (self.n_oscillators, self.n_oscillators))
-        self.phase_bias = np.zeros((self.n_oscillators, self.n_oscillators))
+        #TODO EXO 2.1: Set nominal frequencies and amplitudes according to needs
+        drive = np.concatenate([
+            np.full(n_body_joints, drive_left),   # oscillateurs gauche
+            np.full(n_body_joints, drive_right),  # oscillateurs droite
+        ])
+        active = (drive >= d_low) & (drive <= d_high)
 
-        # drive (constant in project 1)
+        self.nominal_frequencies = np.where(
+            active,
+            G_freq * (drive - d_low) + offset_freq,
+            0
+        )
+
+        self.nominal_amplitudes = np.where(
+            active,
+            G_amp * (drive - d_low) + offset_amp,
+            0
+        )
+
+        self.coupling_weights = np.zeros((self.n_oscillators, self.n_oscillators))
+        for i in range(n_body_joints):
+            l = i                    
+            r = i + n_body_joints   
+
+            if i > 0:
+                self.coupling_weights[l, l - 1] = coupling_weights_rostral
+                self.coupling_weights[r, r - 1] = coupling_weights_rostral
+
+            if i < n_body_joints - 1:
+                self.coupling_weights[l, l + 1] = coupling_weights_caudal
+                self.coupling_weights[r, r + 1] = coupling_weights_caudal
+
+            self.coupling_weights[l, r] = coupling_weights_contra
+            self.coupling_weights[r, l] = coupling_weights_contra
+
+
+        self.phase_bias = np.zeros((self.n_oscillators, self.n_oscillators))
+        PB = PL / (n_body_joints - 1)
+        for i in range(n_body_joints):
+            l = i
+            r = i + n_body_joints
+
+            if i > 0:
+                self.phase_bias[l, l - 1] = +PB
+                self.phase_bias[r, r - 1] = +PB
+
+            if i < n_body_joints - 1:
+                self.phase_bias[l, l + 1] = -PB
+                self.phase_bias[r, r + 1] = -PB
+
+            self.phase_bias[l, r] = +np.pi
+            self.phase_bias[r, l] = -np.pi
+
         self.drive_left = drive_left
         self.drive_right = drive_right
 
