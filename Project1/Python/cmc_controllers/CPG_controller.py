@@ -169,17 +169,28 @@ class CPGNetwork(NeuralNetwork):
         # Compute nominal frequencies (Eq. 7) and nominal amplitudes (Eq. 8)
         # fi = G_freq * (d - d_low) + offset_freq  if d_low <= d <= d_high, else 0
         # Ri = G_amp  * (d - d_low) + offset_amp   if d_low <= d <= d_high, else 0
+
+        G_freq = self.G_freq
+        G_amp = self.G_amp
+        offset_freq = self.offset_freq
+        offset_amp = self.offset_amp
+
+        G_freq_full = np.concatenate([G_freq, G_freq])
+        G_amp_full = np.concatenate([G_amp, G_amp])
+        offset_freq_full = np.concatenate([offset_freq, offset_freq])
+        offset_amp_full = np.concatenate([offset_amp, offset_amp])
+        
         drive = np.array([self.drive_left] * self.n_body_joints + [self.drive_right] * self.n_body_joints)
         in_range = (drive >= self.d_low) & (drive <= self.d_high)
 
         nominal_frequencies = np.where(
             in_range,
-            self.G_freq * (drive - self.d_low) + self.offset_freq,
+            G_freq_full * (drive - self.d_low) + offset_freq_full,
             0.0
         )
         nominal_amplitudes = np.where(
             in_range,
-            self.G_amp * (drive - self.d_low) + self.offset_amp,
+            G_amp_full * (drive - self.d_low) + offset_amp_full,
             0.0
         )
 
