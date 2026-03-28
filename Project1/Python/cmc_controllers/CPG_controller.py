@@ -85,6 +85,10 @@ class CPGNetwork(NeuralNetwork):
 
         # CPG controller parameters
         #TODO EXO 2.1: Set nominal frequencies and amplitudes according to needs
+        G_freq_full = np.concatenate([G_freq, G_freq])
+        G_amp_full = np.concatenate([G_amp, G_amp])
+        offset_freq_full = np.concatenate([offset_freq, offset_freq])
+        offset_amp_full = np.concatenate([offset_amp, offset_amp])
         drive = np.concatenate([
             np.full(n_body_joints, drive_left),   # oscillateurs gauche
             np.full(n_body_joints, drive_right),  # oscillateurs droite
@@ -93,16 +97,16 @@ class CPGNetwork(NeuralNetwork):
 
         self.nominal_frequencies = np.where(
             active,
-            G_freq * (drive - d_low) + offset_freq,
+            G_freq_full * (drive - d_low) + offset_freq_full,
             0
         )
 
         self.nominal_amplitudes = np.where(
             active,
-            G_amp * (drive - d_low) + offset_amp,
+            G_amp_full * (drive - d_low) + offset_amp_full,
             0
         )
-
+        
         self.coupling_weights = np.zeros((self.n_oscillators, self.n_oscillators))
         for i in range(n_body_joints):
             l = i                    
