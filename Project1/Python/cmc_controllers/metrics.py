@@ -240,7 +240,6 @@ def compute_mechanical_speed(links_positions: np.ndarray,
     links_vel_xy = links_velocities[:, :, :2]
     speed_forward = np.zeros(n_steps)
     speed_lateral = np.zeros(n_steps)
-    print("links_pos_xy shape: ", np.array(links_pos_xy).shape)
     for idx in range(n_steps):
 
         # Compute the PCA of the links positions

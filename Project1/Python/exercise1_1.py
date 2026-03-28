@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from farms_core.utils.profile import profile
 from farms_core import pylog
-
+from cmc_controllers.plot_utils import plot_results_EXO1_1
 from simulate import runsim
 from cmc_controllers.metrics import (
     compute_frequency_amplitude_fft,
@@ -97,48 +97,23 @@ def post_processing():
         '\nCoT: ',
         cot)
 
-    #Angles
-    n_cycles = 6
-    T = 1.0 / np.mean(freq) 
-    t_end = n_cycles * T
-    mask = sim_times <= t_end
-
-    fig1, ax1 = plt.subplots(figsize=(10, 4))
-    for j in range(8):
-        ax1.plot(sim_times[mask], sensor_data_joints_positions[mask, j],
-                 label=f'joint {j}')
-    ax1.set_xlabel('Time (s)')
-    ax1.set_ylabel('Joint angle (rad)')
-    ax1.set_title('Joint angles over a few cycles')
-    ax1.legend(loc='upper right', fontsize=7, ncol=2)
-    plt.tight_layout()
-    plt.savefig(BASE_PATH + 'joint_angles.png')
-
-    #CoM trajectory
-    com_xy = np.mean(sensor_data_links_positions[:, :, :2], axis=1)
-
-    fig2, ax2 = plt.subplots(figsize=(6, 6))
-    ax2.plot(com_xy[:, 0], com_xy[:, 1], linewidth=1.5)
-    ax2.scatter(com_xy[0, 0], com_xy[0, 1], color='green', zorder=5, label='start')
-    ax2.scatter(com_xy[-1, 0], com_xy[-1, 1], color='red', zorder=5, label='end')
-    ax2.set_xlabel('x (m)')
-    ax2.set_ylabel('y (m)')
-    ax2.set_title('CoM trajectory (2D)')
-    ax2.legend()
-    plt.tight_layout()
-    plt.savefig(BASE_PATH + 'com_trajectory.png')
-
-    plt.show()
-    print(np.linalg.norm(com_xy[-1] - com_xy[0]))  # total distance traveled by CoM
+    #Plotting results
+    plot_results_EXO1_1(
+        sim_times=sim_times,
+        freq=freq,
+        sensor_data_joints_positions=sensor_data_joints_positions,
+        sensor_data_links_positions=sensor_data_links_positions,
+        base_path=BASE_PATH,
+        )  
 
 def main(**kwargs):
     """ex1.1 main"""
     os.makedirs(PLOT_PATH, exist_ok=True)
     controller = {
         'loader': 'cmc_controllers.wave_controller.WaveController',
-        'config': {'freq': 1.5,
-                   'twl': 0.2,
-                   'amp': 1.0}
+        'config': {'freq': 2.0,
+                   'twl': 1.0,
+                   'amp': 2.0}
     }
 
     runsim(
