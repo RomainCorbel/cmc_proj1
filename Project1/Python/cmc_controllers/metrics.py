@@ -238,10 +238,9 @@ def compute_mechanical_speed(links_positions: np.ndarray,
     n_links = 9  # actuated links of Polymander along the spine
     links_pos_xy = links_positions[:, :, :2]
     links_vel_xy = links_velocities[:, :, :2]
-
     speed_forward = np.zeros(n_steps)
     speed_lateral = np.zeros(n_steps)
-
+    print("links_pos_xy shape: ", np.array(links_pos_xy).shape)
     for idx in range(n_steps):
 
         # Compute the PCA of the links positions
@@ -250,7 +249,7 @@ def compute_mechanical_speed(links_positions: np.ndarray,
             n_links_pca=n_links,
             step=idx,
         )
-        com_velocity = np.mean(links_vel_xy[idx, :n_links, :], axis=0)  # shape (2,)
+        com_velocity = np.average(links_vel_xy[idx, :, :], axis=0, weights=LINKS_MASSES)
         speed_forward[idx] = np.dot(com_velocity, direction_fwd)
         speed_lateral[idx] = np.dot(com_velocity, direction_left)   
     return np.mean(speed_forward), np.mean(speed_lateral)
