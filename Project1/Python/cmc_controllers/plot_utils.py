@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from cmc_controllers.metrics import LINKS_MASSES
+
 def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_data_links_positions, base_path):
 
     """
@@ -16,7 +17,7 @@ def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_da
     for j in range(8):
         ax1.plot(sim_times[mask], sensor_data_joints_positions[mask, j], label=f'joint {j}')
     ax1.set_xlabel('Time (s)')
-    ax1.set_ylabel('Joint angle (rad)')
+    ax1.set_ylabel('Joint angle (rad)') 
     ax1.set_title('Joint angles over a few cycles')
     ax1.legend(loc='upper right', fontsize=7, ncol=2)
     plt.tight_layout()
@@ -38,8 +39,6 @@ def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_da
 
     plt.show()
     print(f'CoM displacement: {np.linalg.norm(com_xy[-1] - com_xy[0]):.4f} m')
-
-
 
 def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
     """
@@ -80,6 +79,7 @@ def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
     plt.show()
 
 
+<<<<<<< HEAD
 def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
     """
     Plots heatmaps of forward speed and CoT over a grid of drive and phase lag values.
@@ -116,3 +116,138 @@ def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
     plt.tight_layout()
     plt.savefig(base_path + 'drive_pl_heatmaps.png', dpi=150)
     plt.show()
+=======
+def plot_results_EXO2_1(
+    sim_times,
+    sensor_data_joints_positions,
+    sensor_data_links_positions,
+    base_path,
+    controller_data,
+    t_max=5.0
+):
+    """
+    Plot oscillator states, muscle outputs, joint angles, and CoM trajectory.
+    Clean version with consistent time handling.
+    """
+
+
+    # ─────────────────────────────────────────────
+    # Time handling (use simulation time as reference)
+    # ─────────────────────────────────────────────
+    sim_mask = sim_times <= t_max
+    t_sim = sim_times[sim_mask]
+
+
+    # ─────────────────────────────────────────────
+    # Controller data
+    # ─────────────────────────────────────────────
+    state_full = controller_data['state']  # (n_iter, 3*n_osc)
+    left_idx   = controller_data['indices']['left_body_idx']
+    right_idx  = controller_data['indices']['right_body_idx']
+
+    n_ctrl = state_full.shape[0]
+    n_osc  = state_full.shape[1] // 3
+    n_joints = n_osc // 2
+
+    # Create controller time aligned to sim duration
+    t_ctrl = np.linspace(sim_times[0], sim_times[-1], n_ctrl)
+    ctrl_mask = t_ctrl <= t_max
+    t_ctrl = t_ctrl[ctrl_mask]
+
+    state = state_full[ctrl_mask]
+
+    phases     = state[:, :n_osc]
+    amplitudes = state[:, n_osc:2*n_osc]
+    motor      = state[:, 2*n_osc:]
+
+    ML = motor[:, left_idx]
+    MR = motor[:, right_idx]
+
+    M_sum  = ML + MR
+    M_diff = ML - MR
+
+    # ─────────────────────────────────────────────
+    # FIG 1: Oscillator states
+    # ─────────────────────────────────────────────
+    fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+
+    for i in range(n_osc):
+        axes[0].plot(t_ctrl, phases[:, i], alpha=0.7)
+    axes[0].set_ylabel('Phase θ [rad]')
+    axes[0].set_title('Oscillator Phases')
+
+    for i in range(n_osc):
+        axes[1].plot(t_ctrl, amplitudes[:, i], alpha=0.7)
+    axes[1].set_ylabel('Amplitude r')
+    axes[1].set_xlabel('Time [s]')
+    axes[1].set_title('Oscillator Amplitudes')
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'oscillator_states.png', dpi=150)
+
+    # ─────────────────────────────────────────────
+    # FIG 2: Muscle outputs
+    # ─────────────────────────────────────────────
+    fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+
+    for i in range(n_joints):
+        axes[0].plot(t_ctrl, M_sum[:, i], alpha=0.7)
+    axes[0].set_ylabel('ML + MR')
+    axes[0].set_title('Muscle Output Sum')
+
+    for i in range(n_joints):
+        axes[1].plot(t_ctrl, M_diff[:, i], alpha=0.7)
+    axes[1].set_ylabel('ML - MR')
+    axes[1].set_xlabel('Time [s]')
+    axes[1].set_title('Muscle Output Difference')
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'muscle_outputs.png', dpi=150)
+
+    # ─────────────────────────────────────────────
+    # FIG 3: Joint angles (simulation)
+    # ─────────────────────────────────────────────
+    fig, ax = plt.subplots(figsize=(10, 4))
+
+    for j in range(8):
+        ax.plot(t_sim, sensor_data_joints_positions[sim_mask, j], label=f'joint {j}', alpha=0.7)
+
+    ax.set_ylabel('Joint angle [rad]')
+    ax.set_xlabel('Time [s]')
+    ax.set_title('Joint Angles (Simulation)')
+    ax.legend(loc='upper right', fontsize=7, ncol=2)
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'joint_angles.png', dpi=150)
+
+    # ─────────────────────────────────────────────
+    # FIG 4: CoM trajectory
+    # ─────────────────────────────────────────────
+    com_xy = np.average(
+        sensor_data_links_positions[:, :, :2],
+        axis=1,
+        weights=LINKS_MASSES
+    )
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    ax.plot(com_xy[:, 0], com_xy[:, 1], linewidth=1.5)
+    ax.scatter(com_xy[0, 0], com_xy[0, 1], color='green', label='start')
+    ax.scatter(com_xy[-1, 0], com_xy[-1, 1], color='red', label='end')
+
+    ax.set_xlabel('x (m)')
+    ax.set_ylabel('y (m)')
+    ax.set_title('CoM Trajectory (2D)')
+    ax.legend()
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'com_trajectory.png', dpi=150)
+
+    # ─────────────────────────────────────────────
+    # Final
+    # ─────────────────────────────────────────────
+    plt.show()
+
+    displacement = np.linalg.norm(com_xy[-1] - com_xy[0])
+    print(f'CoM displacement: {displacement:.4f} m')
+>>>>>>> 2bbc74394888b543537812a5ad74fbea604819ca
