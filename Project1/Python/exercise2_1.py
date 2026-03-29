@@ -35,7 +35,7 @@ def post_processing(base_path,plot = True):
 
     if plot:
         plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  base_path, controller_data)
-
+    return sim_times, sensor_data_joints_positions, sensor_data_links_positions
 
 def main(**kwargs):
     """Run exercise 2.1 simulation and post-processing pipeline."""

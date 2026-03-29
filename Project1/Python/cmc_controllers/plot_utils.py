@@ -78,8 +78,6 @@ def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
     plt.savefig(base_path + 'gridsearch_heatmaps.png', dpi=150)
     plt.show()
 
-
-<<<<<<< HEAD
 def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
     """
     Plots heatmaps of forward speed and CoT over a grid of drive and phase lag values.
@@ -116,7 +114,7 @@ def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
     plt.tight_layout()
     plt.savefig(base_path + 'drive_pl_heatmaps.png', dpi=150)
     plt.show()
-=======
+# =======
 def plot_results_EXO2_1(
     sim_times,
     sensor_data_joints_positions,
@@ -250,4 +248,3 @@ def plot_results_EXO2_1(
 
     displacement = np.linalg.norm(com_xy[-1] - com_xy[0])
     print(f'CoM displacement: {displacement:.4f} m')
->>>>>>> 2bbc74394888b543537812a5ad74fbea604819ca
