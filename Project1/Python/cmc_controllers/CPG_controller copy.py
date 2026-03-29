@@ -80,10 +80,10 @@ class CPGNetwork(NeuralNetwork):
         self.coupling_weights_caudal = coupling_weights_caudal
         self.coupling_weights_contra = coupling_weights_contra
 
-        pylog.warning("TODO 3.1 stretch feedback")
+        #pylog.warning("TODO 3.1 stretch feedback")
         self.w_ipsi = kwargs.pop('w_ipsi', None)
 
-        pylog.warning("TODO 3.3 Disruption masks")
+        #pylog.warning("TODO 3.3 Disruption masks")
         self.disruption_p_sensors = kwargs.pop('disruption_p_sensors', 0.0)
         self.disruption_p_couplings = kwargs.pop('disruption_p_couplings', 0.0)
         self.random_seed = kwargs.pop('random_seed', 42)
@@ -155,7 +155,7 @@ class CPGNetwork(NeuralNetwork):
                             self.phase_bias[i, j] = -np.pi
 
     def motor_output(self, phase, amplitude):
-        pylog.warning("TODO 2.1 CPG motor output implementation")
+        #pylog.warning("TODO 2.1 CPG motor output implementation")
         """Eq. 10: Mi = ri(1 + cos(θi))"""
         oscillator_output = amplitude * (1 + np.cos(phase))
         return np.array(oscillator_output[self.left_body_idx]), np.array(
@@ -173,7 +173,7 @@ class CPGNetwork(NeuralNetwork):
 
         dstates = np.zeros_like(state)
 
-        pylog.warning("TODO 2.1 CPG ODE implementation")
+        #pylog.warning("TODO 2.1 CPG ODE implementation")
         # Amplitude ODE (Eq. 6): ṙi = ai(Ri − ri)
         dstates[self.n_oscillators:2*self.n_oscillators] = \
             self.a_rate * (self.nominal_amplitudes - amplitudes)
@@ -185,7 +185,7 @@ class CPGNetwork(NeuralNetwork):
             2 * np.pi * self.nominal_frequencies + coupling.sum(axis=1)
         
 
-        pylog.warning("TODO 3.1 Stretch feedback")
+        #pylog.warning("TODO 3.1 Stretch feedback")
 
         if self.w_ipsi is not None:
             pass
@@ -213,11 +213,11 @@ class CPGNetwork(NeuralNetwork):
         stretch_value = np.array(
             self.data.sensors.joints.array[iteration-1, :self.n_body_joints, 0]) if iteration > 0 else np.zeros(self.n_body_joints)
 
-        pylog.warning("TODO 3.1 Stretch feedback")
+        #pylog.warning("TODO 3.1 Stretch feedback")
 
-        pylog.warning("TODO 3.3 Disruption to sensors")
+        #pylog.warning("TODO 3.3 Disruption to sensors")
 
-        pylog.warning("TODO 3.3 Set ODE parameters with stretch value")
+        #pylog.warning("TODO 3.3 Set ODE parameters with stretch value")
         self.solver.set_f_params(np.zeros(self.n_oscillators))
 
         # Integrate ODE using dopri5 solver

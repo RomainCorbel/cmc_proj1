@@ -14,6 +14,7 @@ from cmc_controllers.metrics import (
     compute_mechanical_speed,
     compute_trajectory_curvature,
 )
+from cmc_controllers.plot_utils import plot_drive_pl_heatmaps
 
 # Multiprocessing
 try:
@@ -27,7 +28,7 @@ MAX_WORKERS = 8  # adjust based on your hardware capabilities
 # CPG parameters
 BASE_PATH = 'logs/exercise2_2/'
 PLOT_PATH = 'results'
-
+RECORDING = None
 
 def load_metrics_from_hdf5(hdf5_path):
     """Load speed and CoT metrics from an HDF5 simulation result."""
@@ -55,12 +56,100 @@ def load_metrics_from_hdf5(hdf5_path):
     return speed_forward, speed_lateral, cot
 
 
+def get_metrics_drive_pl(drive, pl, base_path):
+    """Load speed and CoT for a (drive, pl) pair from grid1_drive_pl."""
+    n_joint = 8
+    hdf5_path = (
+        base_path
+        + f"simulation_drive{drive:0.3f}_PLarr{n_joint - 1}_{pl:0.3f}.hdf5"
+    )
+    if not os.path.exists(hdf5_path):
+        return np.nan, np.nan
+    with h5py.File(hdf5_path, "r") as f:
+        sim_times = f['times'][:]
+        sensor_data_links = f['FARMSLISTanimats']['0']['sensors']['links']['array'][:]
+        sensor_data_joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
+
+    links_positions = sensor_data_links[:, :, 7:10]
+    links_velocities = sensor_data_links[:, :, 14:17]
+    joints_velocities = sensor_data_joints[:, :, 1]
+    joints_torques = sensor_data_joints[:, :, 2]
+
+    speed_forward, _ = compute_mechanical_speed(
+        links_positions=links_positions,
+        links_velocities=links_velocities,
+    )
+    _, cot = compute_mechanical_energy_and_cot(
+        times=sim_times,
+        links_positions=links_positions,
+        joints_torques=joints_torques,
+        joints_velocities=joints_velocities,
+    )
+    return speed_forward, cot
+
+
 def exercise2_2(**kwargs):
     pylog.warning("TODO: 2.2: Explore the effect of drive parameters and body phase bias")
-    # pylog.set_level('critical')
+    pylog.set_level('critical')
 
     plot = kwargs.pop('plot', False)
+    controller = {
+        'loader': 'cmc_controllers.CPG_controller.CPGController',
+        'config': {
+            'drive_left': 3,
+            'drive_right': 3,
+            'd_low': 1,
+            'd_high': 5,
+            'a_rate': np.ones(8) * 3,
+            'offset_freq': np.ones(8) * 1,
+            'offset_amp': np.ones(8) * 0.5,
+            'G_freq': np.ones(8) * 0.5,
+            'G_amp': np.ones(8) * 0.25,
+            'PL': np.ones(7) * np.pi * 2 / 8,
+            'coupling_weights_rostral': 5,
+            'coupling_weights_caudal': 5,
+            'coupling_weights_contra': 10,
+            'init_phase': np.random.default_rng(
+                seed=42).uniform(
+                0.0,
+                2 * np.pi,
+                size=16)}}
+    
+
+    n_joint = 8
+    N_GRID = 5  # grid resolution
+
+    # Grid 1: symmetric drive (drive_left = drive_right) × phase lag per joint
+    drive_vals = np.linspace(2.0, 4.0, N_GRID)
+    pl_vals = np.linspace(np.pi / (2 * n_joint), 3 * np.pi / n_joint, N_GRID)
+    # PL is an array of (n_joint-1) equal values — one per inter-joint connection
+    pl_arrays = [np.ones(n_joint - 1) * pl for pl in pl_vals]
+
+    #'drive' is a special alias in runsim that sets both drive_left and drive_right
+    run_multiple(
+        max_workers=MAX_WORKERS,
+        controller=controller,
+        base_path=BASE_PATH + 'grid1_drive_pl/',
+        parameter_grid={'drive': drive_vals, 'PL': pl_arrays},
+        common_kwargs={'fast': True, 'headless': True},
+    )
+
+    # Grid 2: differential drive (drive_left ≠ drive_right) — to study turning
+    # run_multiple(
+    #     max_workers=MAX_WORKERS,
+    #     controller=controller,
+    #     base_path=BASE_PATH + 'grid2_diff_drive/',
+    #     parameter_grid={'drive_left': drive_vals, 'drive_right': drive_vals},
+    #     common_kwargs={'fast': True, 'headless': True},
+    # )
     if plot:
+        grid1_path = BASE_PATH + 'grid1_drive_pl/'
+        plot_drive_pl_heatmaps(
+            drive_range=drive_vals,
+            pl_vals=pl_vals,
+            get_metrics=lambda d, pl: get_metrics_drive_pl(d, pl, grid1_path),
+            base_path=grid1_path,
+        )
         plt.show()
 
 

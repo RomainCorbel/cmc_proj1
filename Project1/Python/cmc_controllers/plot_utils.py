@@ -78,3 +78,41 @@ def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
     plt.tight_layout()
     plt.savefig(base_path + 'gridsearch_heatmaps.png', dpi=150)
     plt.show()
+
+
+def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
+    """
+    Plots heatmaps of forward speed and CoT over a grid of drive and phase lag values.
+    get_metrics(drive, pl) must return (speed_forward, cot).
+    """
+    n_drive = len(drive_range)
+    n_pl = len(pl_vals)
+
+    grid_speed = np.full((n_drive, n_pl), np.nan)
+    grid_cot   = np.full((n_drive, n_pl), np.nan)
+
+    for i, drive in enumerate(drive_range):
+        for j, pl in enumerate(pl_vals):
+            speed, cot = get_metrics(drive, pl)
+            grid_speed[i, j] = speed
+            grid_cot[i, j]   = cot
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    grids  = [grid_speed, grid_cot]
+    titles = ['Forward speed (m/s)', 'CoT (J/m)']
+
+    for ax, grid, title in zip(axes, grids, titles):
+        im = ax.imshow(grid, aspect='auto', origin='lower', cmap='viridis')
+        plt.colorbar(im, ax=ax)
+        ax.set_xticks(range(n_pl))
+        ax.set_xticklabels([f'{p:.2f}' for p in pl_vals], rotation=45)
+        ax.set_yticks(range(n_drive))
+        ax.set_yticklabels([f'{d:.2f}' for d in drive_range])
+        ax.set_xlabel('Phase lag per joint (rad)')
+        ax.set_ylabel('Drive')
+        ax.set_title(title)
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'drive_pl_heatmaps.png', dpi=150)
+    plt.show()
