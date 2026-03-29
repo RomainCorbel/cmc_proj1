@@ -332,6 +332,49 @@ def get_animal_data(path):
 #     print(f"\nMeilleure simulation trouvée dans : {best_params['folder']}")
 #     return best_params
 
+def find_best_imitation(target_f, target_ipl, target_amp):
+    n_steps = 5
+    drives = np.linspace(2.0, 4.0, n_steps) 
+    phase_lags = np.linspace(target_ipl * 0.8, target_ipl * 1.2, n_steps)
+    
+    # Initialisation des matrices pour les heatmaps
+    res = {k: np.zeros((n_steps, n_steps)) for k in ['error', 'f', 'amp']}
+    best_error = float('inf')
+    best_params = {}
+
+    # =========================================================================
+    # PARTIE SIMULATION (Commentée pour exécution post-traitement uniquement)
+    # =========================================================================
+    """
+    base_controller = {
+        'loader': 'cmc_controllers.CPG_controller.CPGController',
+        'config': {
+            'd_low': 1.0, 'd_high': 5.0, 'a_rate': np.ones(8)*3,
+            'offset_freq': np.ones(8)*1, 'offset_amp': np.ones(8)*0.5,
+            'G_freq': np.ones(8)*0.5, 'G_amp': np.ones(8)*0.25,
+            'coupling_weights_rostral': 5, 'coupling_weights_caudal': 5,
+            'coupling_weights_contra': 10,
+            'init_phase': np.random.default_rng(seed=42).uniform(0, 2*np.pi, 16)
+        }
+    }
+    parameter_grid = {'drive': drives, 'phaselag': phase_lags}
+    
+    from simulate import run_multiple
+    run_multiple(
+        max_workers=4, 
+        controller=base_controller, 
+        base_path=BASE_PATH,
+        parameter_grid=parameter_grid,
+        common_kwargs={'fast': True, 'headless': True}
+    )
+    """
+    # TODO Analysis
+    print("Bonus, maintenant il faut analyse des résultats pour trouver la meilleure imitation de l'animal...")
+    # =========================================================================
+
+
+
+
 def exercise2_3(**kwargs):
     """
     Analyze animal data and compare with the current controller's performance.
@@ -373,7 +416,7 @@ def exercise2_3(**kwargs):
     print(f"{'Phase Lag / IPL (rad)':<25} | {ipl_animal:<12.3f} | {ipl_robot:<12.3f}")
     print("="*55 + "\n")
 
-    # find_best_imitation(f_animal, ipl_animal, a_animal)
+    find_best_imitation(f_animal, ipl_animal, a_animal)
 
 
 if __name__ == '__main__':
