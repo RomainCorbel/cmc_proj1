@@ -83,7 +83,7 @@ class CPGNetwork(NeuralNetwork):
         #pylog.warning("TODO 3.1 stretch feedback")
         self.w_ipsi = kwargs.pop('w_ipsi', None)
 
-        #pylog.warning("TODO 3.3 Disruption masks")
+        pylog.warning("TODO 3.3 Disruption masks")
         self.disruption_p_sensors = kwargs.pop('disruption_p_sensors', 0.0)
         self.disruption_p_couplings = kwargs.pop('disruption_p_couplings', 0.0)
         self.random_seed = kwargs.pop('random_seed', 42)
@@ -187,8 +187,16 @@ class CPGNetwork(NeuralNetwork):
 
         #pylog.warning("TODO 3.1 Stretch feedback")
 
-        if self.w_ipsi is not None:
-            pass
+        # Apply stretch feedback to amplitudes and phases
+        # Amplitudes += s*cos(phase)    Phases -= s/r*sin(phase)
+        if self.w_ipsi is not None and np.all(abs(amplitudes) > 0.00001):
+            stretch_left = np.where(stretch_value > 0, stretch_value, 0)
+            stretch_right = np.where(-stretch_value > 0, -stretch_value, 0)
+            all_stretch_vals = np.ravel([stretch_left, stretch_right], 'F')
+
+            stretch_feedback = self.w_ipsi*all_stretch_vals
+            dstates[self.n_oscillators:2*self.n_oscillators] += stretch_feedback*np.cos(phases)
+            dstates[:self.n_oscillators] -= stretch_feedback/amplitudes*np.sin(phases)
         return dstates
 
     def step(
@@ -214,11 +222,12 @@ class CPGNetwork(NeuralNetwork):
             self.data.sensors.joints.array[iteration-1, :self.n_body_joints, 0]) if iteration > 0 else np.zeros(self.n_body_joints)
 
         #pylog.warning("TODO 3.1 Stretch feedback")
+        self.solver.set_f_params(stretch_value)
 
         #pylog.warning("TODO 3.3 Disruption to sensors")
 
         #pylog.warning("TODO 3.3 Set ODE parameters with stretch value")
-        self.solver.set_f_params(np.zeros(self.n_oscillators))
+        #self.solver.set_f_params(np.zeros(self.n_oscillators))  
 
         # Integrate ODE using dopri5 solver
         self.solver.integrate(time + timestep)
