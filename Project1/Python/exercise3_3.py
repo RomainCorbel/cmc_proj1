@@ -47,7 +47,7 @@ W_IPSI = 10.0
 DISRUPTION_P_SENSORS = 0.2
 DISRUPTION_P_COUPLINGS = 0.2
 RANDOM_SEED = 42
-MAX_WORKERS = 8
+MAX_WORKERS = 1
 
 def load_sim_data(hdf5_path, skip_start=500):
     """Load simulation sensor data and slice out initial transient."""
@@ -66,6 +66,63 @@ def load_sim_data(hdf5_path, skip_start=500):
 def exercise3_3(**kwargs):
     """ex3.3 main"""
     pylog.warning("TODO: 3.3 Implement neural disruptions and compare with no disruption.")
+
+    controller = {
+        'loader': 'cmc_controllers.CPG_controller.CPGController',
+        'config': {
+            'drive_left': DRIVE_LEFT,
+            'drive_right': DRIVE_RIGHT,
+            'd_low': DRIVE_LOW,
+            'd_high': DRIVE_HIGH,
+            'a_rate': A_RATE,
+            'offset_freq': OFFSET_FREQ,
+            'offset_amp': OFFSET_AMP,
+            'G_freq': G_FREQ,
+            'G_amp': G_AMP,
+            'PL': PHASELAG,
+            'coupling_weights_rostral': COUPLING_WEIGHTS_ROSTRAL,
+            'coupling_weights_caudal': COUPLING_WEIGHTS_CAUDAL,
+            'coupling_weights_contra': COUPLING_WEIGHTS_CONTRA,
+            'init_phase': INIT_PHASE,
+        },
+    }
+
+    # Run original sim
+    # runsim(
+    #     controller=controller,
+    #     base_path=BASE_PATH,
+    #     w_ipsi=3.0,
+    #     disruption_p_sensors=DISRUPTION_P_SENSORS,
+    #     disruption_p_couplings=DISRUPTION_P_COUPLINGS,
+    #     random_seed=RANDOM_SEED,
+    #     recording='animation3_3.mp4',
+    #     hdf5_name='simulation.hdf5',
+    #     controller_name='controller.pkl',
+    #     runtime_n_iterations=10001,
+    #     runtime_buffer_size=10001,
+    #     fast=True,
+    #     headless=True,
+    # )
+
+    # Run with different disruptions
+    disr_p_range = np.linspace(0, 0.15, 5)
+    run_multiple(
+        max_workers=MAX_WORKERS,
+        controller=controller,
+        base_path=BASE_PATH,
+        parameter_grid={
+            'disruption_p_sensors': disr_p_range,
+            # coupling disruption = 1 is the same as removing all ipsilateral couplings
+            'disruption_p_couplings': np.append(disr_p_range, 1), 
+            },
+        common_kwargs={
+            'fast': True,
+            'headless': True,
+            'runtime_n_iterations': 10001,
+            'runtime_buffer_size': 10001,
+        },
+    )
+    
 
     plot = kwargs.pop('plot', False)
     if plot:

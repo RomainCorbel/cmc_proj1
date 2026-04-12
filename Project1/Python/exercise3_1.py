@@ -113,7 +113,7 @@ def main(**kwargs):
         hdf5_name='simulation_with_sf.hdf5',
         controller_name='controller_with_sf.pkl',
         runtime_n_iterations=5001,
-        runtime_buffer_size=20001,
+        runtime_buffer_size=5001,
         fast=fast,
         headless=headless,
     )
@@ -126,7 +126,7 @@ def main(**kwargs):
         hdf5_name='simulation_without_sf.hdf5',
         controller_name='controller_without_sf.pkl',
         runtime_n_iterations=5001,
-        runtime_buffer_size=20001,
+        runtime_buffer_size=5001,
         fast=fast,
         headless=headless,
     )

@@ -83,11 +83,20 @@ class CPGNetwork(NeuralNetwork):
         #pylog.warning("TODO 3.1 stretch feedback")
         self.w_ipsi = kwargs.pop('w_ipsi', None)
 
-        pylog.warning("TODO 3.3 Disruption masks")
+        #pylog.warning("TODO 3.3 Disruption masks")
+
+        # Get disruption probabilities
         self.disruption_p_sensors = kwargs.pop('disruption_p_sensors', 0.0)
         self.disruption_p_couplings = kwargs.pop('disruption_p_couplings', 0.0)
         self.random_seed = kwargs.pop('random_seed', 42)
         np.random.seed(self.random_seed)
+
+        # Make disruption masks
+        disrupt_sensors_floats = np.random.rand(self.n_body_joints)
+        self.disrupt_mask_sensors = disrupt_sensors_floats < self.disruption_p_sensors
+
+        disrupt_cpls_floats = np.random.rand(self.n_oscillators, self.n_oscillators)
+        self.disrupt_mask_cpls = disrupt_cpls_floats < self.disruption_p_couplings
 
         # CPG controller parameters
         self.nominal_amplitudes = np.zeros(self.n_oscillators)
@@ -125,10 +134,12 @@ class CPGNetwork(NeuralNetwork):
                 j_seg  = j // 2
 
                 if i_side == j_side:           # ipsilateral
-                    if j_seg == i_seg + 1:     # caudal (head→tail)
-                        self.coupling_weights[i, j] = coupling_weights_caudal
-                    elif j_seg == i_seg - 1:   # rostral (tail→head)
-                        self.coupling_weights[i, j] = coupling_weights_rostral
+
+                    if not self.disrupt_mask_cpls[i, j]: # Only set if not disrupted
+                        if j_seg == i_seg + 1:     # caudal (head→tail)
+                            self.coupling_weights[i, j] = coupling_weights_caudal
+                        elif j_seg == i_seg - 1:   # rostral (tail→head)
+                            self.coupling_weights[i, j] = coupling_weights_rostral
                 else:                          # contralateral
                     if i_seg == j_seg:
                         self.coupling_weights[i, j] = coupling_weights_contra
@@ -190,11 +201,7 @@ class CPGNetwork(NeuralNetwork):
         # Apply stretch feedback to amplitudes and phases
         # Amplitudes += s*cos(phase)    Phases -= s/r*sin(phase)
         if self.w_ipsi is not None and np.all(abs(amplitudes) > 0.00001):
-            stretch_left = np.where(stretch_value > 0, stretch_value, 0)
-            stretch_right = np.where(-stretch_value > 0, -stretch_value, 0)
-            all_stretch_vals = np.ravel([stretch_left, stretch_right], 'F')
-
-            stretch_feedback = self.w_ipsi*all_stretch_vals
+            stretch_feedback = self.w_ipsi*stretch_value
             dstates[self.n_oscillators:2*self.n_oscillators] += stretch_feedback*np.cos(phases)
             dstates[:self.n_oscillators] -= stretch_feedback/amplitudes*np.sin(phases)
         return dstates
@@ -221,13 +228,18 @@ class CPGNetwork(NeuralNetwork):
         stretch_value = np.array(
             self.data.sensors.joints.array[iteration-1, :self.n_body_joints, 0]) if iteration > 0 else np.zeros(self.n_body_joints)
 
+        # Add disruption to sensor values
+        stretch_value = np.where(self.disrupt_mask_sensors, 0, stretch_value)
+
         #pylog.warning("TODO 3.1 Stretch feedback")
-        self.solver.set_f_params(stretch_value)
+        stretch_left = np.where(stretch_value > 0, stretch_value, 0)
+        stretch_right = np.where(-stretch_value > 0, -stretch_value, 0)
+        all_stretch_vals = np.ravel([stretch_left, stretch_right], 'F')
 
         #pylog.warning("TODO 3.3 Disruption to sensors")
 
         #pylog.warning("TODO 3.3 Set ODE parameters with stretch value")
-        #self.solver.set_f_params(np.zeros(self.n_oscillators))  
+        self.solver.set_f_params(all_stretch_vals)  
 
         # Integrate ODE using dopri5 solver
         self.solver.integrate(time + timestep)

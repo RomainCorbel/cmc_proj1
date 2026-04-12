@@ -22,7 +22,7 @@ try:
     from tqdm import tqdm
 except ImportError:
     tqdm = None
-MAX_WORKERS = 8  # adjust based on your hardware capabilities
+MAX_WORKERS = 1  # adjust based on your hardware capabilities
 
 
 BASE_PATH = 'logs/exercise3_2/'
