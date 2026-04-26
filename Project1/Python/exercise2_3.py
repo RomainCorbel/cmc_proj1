@@ -2,423 +2,232 @@
 
 import os
 import h5py
+import numpy as np
 import matplotlib.pyplot as plt
 
-from cmc_controllers import CPG_controller
-from cmc_controllers.plot_utils import plot_gridsearch_heatmaps
-from exercise1_2 import get_metrics
 from farms_core import pylog
+from cmc_controllers.metrics import (
+    compute_mechanical_frequency_amplitude_fft,
+    compute_neural_phase_lags,
+)
+from cmc_controllers.plot_utils import plot_kinematics_comparison
 
-from cmc_controllers.metrics import *
-from simulate import run_multiple, runsim
-
-
-BASE_PATH = 'logs/exercise2_3/'
-PLOT_PATH = 'results'
+BASE_PATH       = 'logs/exercise2_3/'
+GRID_PATH       = 'logs/exercise2_2/grid1_drive_pl/'
 ANIMAL_DATA_PATH = 'cmc_project_pack/models/a2sw5_cycle_smoothed.csv'
 
+N_JOINT    = 8
+N_GRID     = 10
+DRIVE_VALS = np.linspace(2.0, 4.0, N_GRID)
+PL_VALS    = np.linspace(np.pi / (2 * N_JOINT), 3 * np.pi / N_JOINT, N_GRID)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Animal data
+# ──────────────────────────────────────────────────────────────────────────────
+
 def get_animal_data(path):
-    """Extract metrics from animal data and apply dynamical scaling."""
-    data = np.genfromtxt(path, delimiter=',', skip_header=1)
-    times = data[:, 0]
-    joint_angles = np.deg2rad(data[:, 1:9]) 
-    
-    # 1. Extract raw animal metrics
+    """Load animal CSV and return scaled metrics + raw kinematics."""
+    data         = np.genfromtxt(path, delimiter=',', skip_header=1)
+    times        = data[:, 0]
+    joint_angles = np.deg2rad(data[:, 1:9])
+
     freqs, amplitudes = compute_mechanical_frequency_amplitude_fft(times, joint_angles)
-    f_animal = np.mean(freqs)
+    f_animal   = np.mean(freqs)
     amp_animal = np.mean(amplitudes)
 
-    # 2. Extract Phase Lag (IPL)
-    inds_couples = [[i, i+1] for i in range(7)]
-    _, ipls_animal = compute_neural_phase_lags(
+    inds_couples = [[i, i + 1] for i in range(N_JOINT - 1)]
+    _, ipl_animal = compute_neural_phase_lags(
         times=times,
         smooth_signals=joint_angles,
         freqs=freqs,
-        inds_couples=inds_couples
+        inds_couples=inds_couples,
     )
 
-    # 3. Dynamical Scaling (Project Ref [4])
-    # Frequency scales by sqrt(1/6.5)
+    # Dynamical scaling: frequency scales by sqrt(1/6.5) (Project Ref [4])
     freq_robot_scaled = np.sqrt(1 / 6.5) * f_animal
-    
-    return freq_robot_scaled, amp_animal, ipls_animal
 
-# def find_best_imitation(target_f, target_ipl, target_amp):
-#     def plot_error_heatmap(error_matrix, drives, phase_lags):
-#         plt.figure(figsize=(10, 8))
-#         # Use seaborn for a clean look
-#         import seaborn as sns
-#         ax = sns.heatmap(
-#             error_matrix, 
-#             annot=True, 
-#             fmt=".3f", 
-#             xticklabels=np.round(phase_lags, 3), 
-#             yticklabels=np.round(drives, 2),
-#             cmap="YlGnBu_r" # Reverse color map so low error is blue/dark
-#         )
-        
-#         plt.title("Imitation Error Heatmap")
-#         plt.xlabel("Phase Lag (PL)")
-#         plt.ylabel("Drive (d)")
-#         plt.show()
-#     n_steps = 5
-#     error_matrix = np.zeros((n_steps, n_steps))
-#     drives = np.linspace(2.0, 4.0, n_steps) 
-#     phase_lags = np.linspace(target_ipl * 0.8, target_ipl * 1.2, n_steps)
-    
-#     best_error = float('inf')
-#     best_params = {}
-#     i = 0
-#     j = 0
-#     for i, d in enumerate(drives):
-#         # --- TUNING AMPLITUDE (Step 3) ---
-#         # Solve Equation 7 for G_amp: 
-#         # G_amp = (Target_R - offset) / (drive - d_low)
-#         # Note: We use target_amp as our Target_R
-#         d_low = 1.0
-#         c_R0 = 0.5
-        
-#         # Calculate the G_amp needed to hit the target amplitude at this drive
-#         # We add a small max(0.01, ...) to avoid division by zero if d == d_low
-#         calculated_G_amp = (target_amp - c_R0) / max(0.01, (d - d_low))
-        
-#         # Clip it to a reasonable range (e.g., 0.0 to 1.0) to avoid unstable gait
-#         calculated_G_amp = np.clip(calculated_G_amp, 0.01, 1.0)
-
-#         for j, pl in enumerate(phase_lags):
-#             print(f"\n\n\n\n\n\n\n\n\n Testing Drive: {d:.2f}, PL: {pl:.2f}, G_amp: {calculated_G_amp:.3f} \n\n\n\n\n\n\n\n\n")
-#             controller = {
-#                 'loader': 'cmc_controllers.CPG_controller.CPGController',
-#                 'config': {
-#                     'drive_left': d,
-#                     'drive_right': d,
-#                     'd_low': d_low,
-#                     'd_high': 5,
-#                     'a_rate': np.ones(8) * 3,
-#                     'offset_freq': np.ones(8) * 1,
-#                     'offset_amp': np.ones(8) * c_R0,
-#                     'G_freq': np.ones(8) * 0.5,
-#                     'G_amp': np.ones(8) * calculated_G_amp, # Applied here
-#                     'PL': np.ones(7) * pl,
-#                     'coupling_weights_rostral': 5,
-#                     'coupling_weights_caudal': 5,
-#                     'coupling_weights_contra': 10,
-#                     'init_phase': np.random.default_rng(seed=42).uniform(0, 2*np.pi, 16)
-#                 }
-#             }
-
-#             # Run and evaluate
-#             runsim(controller=controller, base_path=BASE_PATH)
-            
-#             with h5py.File(os.path.join(BASE_PATH, 'simulation.hdf5'), "r") as f:
-#                 times = f['times'][:]
-#                 joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:, :8, 0]
-                
-#                 # Use steady state (last 50%)
-#                 cut = len(times) // 2
-#                 f_sim_arr, a_sim_arr = compute_mechanical_frequency_amplitude_fft(times[cut:], joints[cut:])
-#                 f_sim = np.mean(f_sim_arr)
-#                 ipl_sim = np.mean(compute_neural_phase_lags(times[cut:], joints[cut:], f_sim_arr, [[i, i+1] for i in range(7)])[1])
-#                 a_sim = np.mean(a_sim_arr)
-
-#             # Compute error
-#             error = (abs(f_sim - target_f) / target_f) + \
-#                     (abs(ipl_sim - target_ipl) / target_ipl) + \
-#                     (abs(a_sim - target_amp) / target_amp)
-#             print(f"Drive: {d:.2f}, PL: {pl:.2f} => Error: {error:.4f} (Freq: {f_sim:.2f}, IPL: {ipl_sim:.2f}, Amp: {a_sim:.2f})")
-#             error_matrix[i, j] = error
-#             if error < best_error:
-#                 best_error = error
-#                 best_params = {
-#                     'drive': d, 
-#                     'pl': pl, 
-#                     'G_amp': calculated_G_amp,
-#                     'f_final': f_sim,
-#                     'amp_final': a_sim
-#                 }
-#                 print(f"New Best! Error: {error:.4f} (Freq: {f_sim:.2f}, Amp: {a_sim:.2f})")
-#     plot_error_heatmap(error_matrix, drives, phase_lags)
-#     return best_params
-
-# import numpy as np
-# import os
-# import h5py
-# import matplotlib.pyplot as plt
-# import matplotlib.pyplot as plt
-# import numpy as np
-# import os
-# import h5py
-# import pickle
-# import re
+    return freq_robot_scaled, amp_animal, ipl_animal, times, joint_angles
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Grid scan helpers
+# ──────────────────────────────────────────────────────────────────────────────
 
-# def find_best_imitation(target_f, target_ipl, target_amp):
-#     """
-#     Analyse les simulations existantes pour trouver le meilleur match avec l'animal.
-#     """
-#     def get_metrics(drive, pl):
-#         # 1. Construction du nom du dossier (doit être identique à celui généré par run_multiple)
-#         # Note : Vérifie bien si c'est 'drive_left' ou 'drive' dans le nom du dossier
-#         folder_name = f"controller_drive_left{drive:.3f}_drive_right{drive:.3f}_PLarr7_{pl:.3f}"
-#         folder_path = os.path.join(BASE_PATH, folder_name)
-        
-#         path_hdf5 = os.path.join(folder_path, 'simulation.hdf5')
-#         path_pkl = os.path.join(folder_path, 'controller.pkl')
+def _robot_metrics_from_hdf5(hdf5_path):
+    """Return (f, amp, ipl, times, joint_pos) from a grid simulation file."""
+    with h5py.File(hdf5_path, "r") as f:
+        times  = f['times'][:]
+        joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
 
-#         if not os.path.exists(path_hdf5) or not os.path.exists(path_pkl):
-#             print(f"⚠️ Manquant : {folder_name}")
-#             return 0.0, float('inf'), 0.0 # Vitesse nulle, CoT infini, IPL nul
+    joint_pos = joints[:, :N_JOINT, 0]   # joint angles (rad)
 
-#         # --- Lecture HDF5 (Mécanique) ---
-#         with h5py.File(path_hdf5, "r") as f:
-#             sim_times = f['times'][:]
-#             # On cible l'animat 0
-#             links = f['FARMSLISTanimats']['0']['sensors']['links']['array']
-#             joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array']
+    # Steady-state: last 50%
+    cut  = len(times) // 2
+    t_ss = times[cut:]
+    j_ss = joint_pos[cut:]
 
-#             # Slicing correct des données
-#             links_pos = links[:, :, 7:10]   # Position XYZ
-#             links_vel = links[:, :, 14:17]  # Vitesse XYZ
-#             joints_vel = joints[:, :, 1]    # Vitesse angulaire
-#             joints_tau = joints[:, :, 2]    # Torque (couple)
+    f_arr, a_arr = compute_mechanical_frequency_amplitude_fft(t_ss, j_ss)
+    f_sim  = float(np.mean(f_arr))
+    a_sim  = float(np.mean(a_arr))
 
-#         # Calcul des métriques de performance physique
-#         speed_forward, _ = compute_mechanical_speed(
-#             links_positions=links_pos,
-#             links_velocities=links_vel,
-#         )
-#         _, cot = compute_mechanical_energy_and_cot(
-#             times=sim_times,
-#             links_positions=links_pos,
-#             joints_torques=joints_tau,
-#             joints_velocities=joints_vel,
-#         )
+    inds_couples = [[i, i + 1] for i in range(N_JOINT - 1)]
+    _, ipl_sim = compute_neural_phase_lags(t_ss, j_ss, f_arr, inds_couples)
 
-#         # --- Lecture PKL (Neural/Contrôleur) ---
-#         with open(path_pkl, "rb") as f:
-#             controller_data = pickle.load(f)
+    return f_sim, a_sim, float(ipl_sim), times, joint_pos
 
-#         # Extraction des signaux neuraux (différence gauche/droite pour avoir l'oscillation)
-#         indices = controller_data["indices"]
-#         # state[:, 2*n_osc:] correspond généralement aux sorties moteur 'm'
-#         n_osc = controller_data["state"].shape[1] // 3
-#         motor_outputs = controller_data["state"][:, 2*n_osc:] 
-        
-#         neural_signals = (
-#             motor_outputs[:, indices['left_body_idx']] - 
-#             motor_outputs[:, indices['right_body_idx']]
-#         )
 
-#         # Filtrage et FFT pour obtenir le Phase Lag (IPL)
-#         neural_smoothed = filter_signals(times=sim_times, signals=neural_signals)
-        
-#         signal_freqs, _, _ = compute_frequency_amplitude_fft(
-#             times=sim_times,
-#             smooth_signals=neural_smoothed,
-#         )
-        
-#         inds_couples = [[i, i + 1] for i in range(neural_smoothed.shape[1] - 1)]
-        
-#         _, ipls_mean = compute_neural_phase_lags(
-#             times=sim_times,
-#             smooth_signals=neural_smoothed,
-#             freqs=signal_freqs,
-#             inds_couples=inds_couples,
-#         )
+def _grid1_hdf5_path(drive, pl):
+    return GRID_PATH + f"simulation_drive{drive:0.3f}_PLarr{N_JOINT - 1}_{pl:0.3f}.hdf5"
 
-#         return float(speed_forward), float(cot), float(ipls_mean)
-#     n_steps = 5
-#     drives = np.linspace(2.0, 4.0, n_steps) 
-#     phase_lags = np.linspace(target_ipl * 0.8, target_ipl * 1.2, n_steps)
-    
-#     # Initialisation des matrices pour les heatmaps
-#     res = {k: np.zeros((n_steps, n_steps)) for k in ['error', 'f', 'amp']}
-#     best_error = float('inf')
-#     best_params = {}
 
-#     # =========================================================================
-#     # PARTIE SIMULATION (Commentée pour exécution post-traitement uniquement)
-#     # =========================================================================
-#     """
-#     base_controller = {
-#         'loader': 'cmc_controllers.CPG_controller.CPGController',
-#         'config': {
-#             'd_low': 1.0, 'd_high': 5.0, 'a_rate': np.ones(8)*3,
-#             'offset_freq': np.ones(8)*1, 'offset_amp': np.ones(8)*0.5,
-#             'G_freq': np.ones(8)*0.5, 'G_amp': np.ones(8)*0.25,
-#             'coupling_weights_rostral': 5, 'coupling_weights_caudal': 5,
-#             'coupling_weights_contra': 10,
-#             'init_phase': np.random.default_rng(seed=42).uniform(0, 2*np.pi, 16)
-#         }
-#     }
-#     parameter_grid = {'drive': drives, 'phaselag': phase_lags}
-    
-#     from simulate import run_multiple
-#     run_multiple(
-#         max_workers=4, 
-#         controller=base_controller, 
-#         base_path=BASE_PATH,
-#         parameter_grid=parameter_grid,
-#         common_kwargs={'fast': True, 'headless': True}
-#     )
-#     """
-#     # =========================================================================
-#     print(f"\nAnalyse des résultats dans {BASE_PATH}...")
-
-#     # 1. Scan des dossiers réels sur le disque
-#     if not os.path.exists(BASE_PATH):
-#         print(f"Erreur : {BASE_PATH} introuvable.")
-#         return None
-
-#     subfolders = [f.path for f in os.scandir(BASE_PATH) if f.is_dir()]
-
-#     for folder_path in subfolders:
-#         folder_name = os.path.basename(folder_path)
-#         path_hdf5 = os.path.join(folder_path, 'simulation.hdf5')
-#         path_pkl = os.path.join(folder_path, 'controller.pkl')
-    
-#         # --- EXTRACTION DES PARAMÈTRES ---
-#         # Regex flexible : cherche 'drive' ou 'drive_left' suivi du nombre
-#         m_d = re.search(r"drive(?:_left)?(\d+\.\d+)", folder_name)
-#         # Cherche 'phaselag' ou 'PLarr7_' suivi du nombre
-#         m_pl = re.search(r"(?:phaselag|PLarr7_)(\d+\.\d+)", folder_name)
-        
-#         d_val = float(m_d.group(1))
-#         pl_val = float(m_pl.group(1))
-
-#         # --- ANALYSE DES MÉTRIQUES (ta logique intégrée) ---
-#         with h5py.File(path_hdf5, "r") as f:
-#             times = f['times'][:]
-#             # Extraction des articulations (8 premières)
-#             joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:, :8, 0]
-            
-#             # Régime permanent
-#             cut = len(times) // 2
-#             t_steady, j_steady = times[cut:], joints[cut:]
-            
-#             # Métriques mécaniques
-#             f_arr, a_arr = compute_mechanical_frequency_amplitude_fft(t_steady, j_steady)
-#             f_sim, a_sim = np.mean(f_arr), np.mean(a_arr)
-            
-#             # Phase Lag Neural (IPL)
-#             _, ipl_arr = compute_neural_phase_lags(t_steady, j_steady, f_arr, [[k, k+1] for k in range(7)])
-#             ipl_sim = np.mean(ipl_arr)
-
-#             # --- CALCUL DE L'ERREUR ---
-#             err_f = abs(f_sim - target_f) / target_f
-#             err_a = abs(a_sim - target_amp) / target_amp
-#             err_ipl = abs(ipl_sim - target_ipl) / target_ipl
-#             error = err_f + err_a + err_ipl
-
-#             # --- MAPPING SUR LA GRILLE ---
-#             i = np.argmin(np.abs(drives - d_val))
-#             j = np.argmin(np.abs(phase_lags - pl_val))
-
-#             res['error'][i, j] = error
-#             res['f'][i, j] = f_sim
-#             res['amp'][i, j] = a_sim
-
-#             if error < best_error:
-#                 best_error = error
-#                 best_params = {
-#                     'drive': d_val, 'PL': pl_val, 'error': error, 
-#                     'f': f_sim, 'amp': a_sim, 'folder': folder_name
-#                 }
-#                 print(f"✅ Nouveau record : D={d_val:.2f}, PL={pl_val:.3f} | Erreur={error:.4f}")
-
-#     targets = {'f': target_f, 'amp': target_amp}
-#     plot_imitation_results(drives, phase_lags, res, targets)
-#     print(f"\nMeilleure simulation trouvée dans : {best_params['folder']}")
-#     return best_params
+# ──────────────────────────────────────────────────────────────────────────────
+# Best imitation search
+# ──────────────────────────────────────────────────────────────────────────────
 
 def find_best_imitation(target_f, target_ipl, target_amp):
-    n_steps = 5
-    drives = np.linspace(2.0, 4.0, n_steps) 
-    phase_lags = np.linspace(target_ipl * 0.8, target_ipl * 1.2, n_steps)
-    
-    # Initialisation des matrices pour les heatmaps
-    res = {k: np.zeros((n_steps, n_steps)) for k in ['error', 'f', 'amp']}
-    best_error = float('inf')
-    best_params = {}
-
-    # =========================================================================
-    # PARTIE SIMULATION (Commentée pour exécution post-traitement uniquement)
-    # =========================================================================
     """
-    base_controller = {
-        'loader': 'cmc_controllers.CPG_controller.CPGController',
-        'config': {
-            'd_low': 1.0, 'd_high': 5.0, 'a_rate': np.ones(8)*3,
-            'offset_freq': np.ones(8)*1, 'offset_amp': np.ones(8)*0.5,
-            'G_freq': np.ones(8)*0.5, 'G_amp': np.ones(8)*0.25,
-            'coupling_weights_rostral': 5, 'coupling_weights_caudal': 5,
-            'coupling_weights_contra': 10,
-            'init_phase': np.random.default_rng(seed=42).uniform(0, 2*np.pi, 16)
-        }
-    }
-    parameter_grid = {'drive': drives, 'phaselag': phase_lags}
-    
-    from simulate import run_multiple
-    run_multiple(
-        max_workers=4, 
-        controller=base_controller, 
-        base_path=BASE_PATH,
-        parameter_grid=parameter_grid,
-        common_kwargs={'fast': True, 'headless': True}
-    )
+    Scan all grid1_drive_pl simulations, compute (f, amp, IPL) from steady-state
+    joint angles, and find the run whose kinematics best match the animal targets.
+
+    Error = |f - f*|/f*  +  |ipl - ipl*|/|ipl*|  +  |amp - amp*|/amp*
     """
-    # TODO Analysis
-    print("Bonus, maintenant il faut analyse des résultats pour trouver la meilleure imitation de l'animal...")
-    # =========================================================================
+    # Storage for heatmaps
+    grid_error = np.full((N_GRID, N_GRID), np.nan)
+    grid_f     = np.full((N_GRID, N_GRID), np.nan)
+    grid_amp   = np.full((N_GRID, N_GRID), np.nan)
+    grid_ipl   = np.full((N_GRID, N_GRID), np.nan)
+
+    best_error  = float('inf')
+    best_params = None
+    best_hdf5   = None
+
+    print(f"\nTarget  →  f={target_f:.3f} Hz  |  IPL={target_ipl:.3f} rad  |  amp={target_amp:.3f} rad")
+    print(f"{'Drive':>6}  {'PL':>6}  {'f_sim':>7}  {'amp_sim':>8}  {'ipl_sim':>8}  {'error':>8}")
+    print("-" * 58)
+
+    for i, drive in enumerate(DRIVE_VALS):
+        for j, pl in enumerate(PL_VALS):
+            fpath = _grid1_hdf5_path(drive, pl)
+            if not os.path.exists(fpath):
+                print(f"{drive:>6.2f}  {pl:>6.3f}  {'MISSING':>34}")
+                continue
+
+            f_sim, a_sim, ipl_sim, _, _ = _robot_metrics_from_hdf5(fpath)
+
+            err = (abs(f_sim   - target_f)   / (target_f         + 1e-9)
+                 + abs(ipl_sim - target_ipl)  / (abs(target_ipl)  + 1e-9)
+                 + abs(a_sim   - target_amp)  / (target_amp        + 1e-9))
+
+            grid_error[i, j] = err
+            grid_f[i, j]     = f_sim
+            grid_amp[i, j]   = a_sim
+            grid_ipl[i, j]   = ipl_sim
+
+            marker = " <-- best" if err < best_error else ""
+            print(f"{drive:>6.2f}  {pl:>6.3f}  {f_sim:>7.3f}  {a_sim:>8.3f}  {ipl_sim:>8.3f}  {err:>8.4f}{marker}")
+
+            if err < best_error:
+                best_error  = err
+                best_params = {'drive': drive, 'pl': pl,
+                               'f': f_sim, 'amp': a_sim, 'ipl': ipl_sim}
+                best_hdf5   = fpath
+
+    print("-" * 58)
+    if best_params:
+        print(f"Best  →  drive={best_params['drive']:.2f}  "
+              f"PL={best_params['pl']:.3f}  error={best_error:.4f}\n")
+
+    # ── Heatmaps of error and metrics ────────────────────────────────────────
+    pl_labels    = [f'{p:.2f}' for p in PL_VALS]
+    drive_labels = [f'{d:.2f}' for d in DRIVE_VALS]
+
+    _, axes = plt.subplots(1, 4, figsize=(18, 4))
+    data_list  = [grid_error, grid_f,   grid_amp,  grid_ipl]
+    titles     = ['Imitation error', 'Frequency (Hz)', 'Amplitude (rad)', 'IPL (rad)']
+    cmaps      = ['YlOrRd_r',        'viridis',        'viridis',          'viridis']
+
+    for ax, data, title, cmap in zip(axes, data_list, titles, cmaps):
+        im = ax.imshow(data, aspect='auto', origin='lower', cmap=cmap)
+        plt.colorbar(im, ax=ax)
+        ax.set_xticks(range(N_GRID))
+        ax.set_xticklabels(pl_labels, rotation=45)
+        ax.set_yticks(range(N_GRID))
+        ax.set_yticklabels(drive_labels)
+        ax.set_xlabel('Phase lag (rad)')
+        ax.set_ylabel('Drive')
+        ax.set_title(title)
+
+    # Mark best cell
+    if best_params is not None:
+        i_best = np.argmin(np.abs(DRIVE_VALS - best_params['drive']))
+        j_best = np.argmin(np.abs(PL_VALS    - best_params['pl']))
+        axes[0].add_patch(plt.Rectangle(
+            (j_best - 0.5, i_best - 0.5), 1, 1,
+            fill=False, edgecolor='cyan', linewidth=2.5, label='best'
+        ))
+
+    plt.suptitle('Grid search: imitation of animal swimming', fontsize=12)
+    plt.tight_layout()
+    os.makedirs(BASE_PATH, exist_ok=True)
+    plt.savefig(BASE_PATH + 'imitation_heatmaps.png', dpi=150)
+    plt.show()
+
+    return best_params, best_hdf5
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Kinematic comparison (bonus)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _extract_one_cycle(times, joint_pos, f_sim):
+    """Extract the last full cycle from the steady-state robot data."""
+    T       = 1.0 / max(f_sim, 0.05)
+    t_start = times[-1] - T
+    mask    = times >= t_start
+    return times[mask], joint_pos[mask]
 
 
-def exercise2_3(**kwargs):
+# ──────────────────────────────────────────────────────────────────────────────
+# Main exercise
+# ──────────────────────────────────────────────────────────────────────────────
+
+def exercise2_3():
     """
-    Analyze animal data and compare with the current controller's performance.
+    Analyze animal data, compare with CPG baseline, and (bonus) find best
+    imitation from the grid1_drive_pl simulations.
     """
-    # Get the target metrics from the animal
-    f_animal, a_animal, ipl_animal = get_animal_data(ANIMAL_DATA_PATH)
-    
-    # Extract data from the EXISTING simulation (Exercise 2.1/2.2 logs)
-    # We load the HDF5 file generated by the controller
-    BASE_PATH_CPG = 'logs/exercise2_1/'
-    sim_result = os.path.join(BASE_PATH_CPG, 'simulation.hdf5')
-    
+    pylog.set_level('critical')
+
+    # ── Animal data ──────────────────────────────────────────────────────────
+    f_animal, a_animal, ipl_animal, animal_times, animal_joints = \
+        get_animal_data(ANIMAL_DATA_PATH)
+
+    # ── Robot baseline (exercise 2.1) ────────────────────────────────────────
+    sim_result = 'logs/exercise2_1/simulation.hdf5'
     with h5py.File(sim_result, "r") as f:
-        sim_times = f['times'][:]
-        sensor_data_joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
-    joint_positions = sensor_data_joints[:, :8, 0]
+        sim_times   = f['times'][:]
+        joints_data = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
+    joint_pos_baseline = joints_data[:, :N_JOINT, 0]
 
+    f_robot_arr, a_robot_arr = compute_mechanical_frequency_amplitude_fft(
+        sim_times, joint_pos_baseline)
+    f_robot  = float(np.mean(f_robot_arr))
+    a_robot  = float(np.mean(a_robot_arr))
+    _, ipl_robot = compute_neural_phase_lags(
+        sim_times, joint_pos_baseline, f_robot_arr,
+        [[i, i + 1] for i in range(N_JOINT - 1)])
 
-    # Robot Metrics
-    # Frequency and Amplitude
-    f_robot_array, a_robot_array = compute_mechanical_frequency_amplitude_fft(sim_times, joint_positions)
-    f_robot = np.mean(f_robot_array)
-    a_robot = np.mean(a_robot_array)
-    # Intersegmental Phase Lag (IPL)
-    inds_couples = [[i, i+1] for i in range(7)]
-    _, ipl_robot = compute_neural_phase_lags(sim_times, joint_positions, f_robot_array, inds_couples)
-    # Speed and Efficiency cannot be computed for the animal as the CSV lacks 
-    # global COM coordinates and muscle torque/effort data.
-
-    
-    # Step 5:  Performance Comparison
-    print("\n" + "="*55)
-    print(f"{'METRIC COMPARISON':^55}")
-    print("="*55)
-    print(f"{'Metric':<25} | {'Animal (Scaled)':<12} | {'CPG Controller':<12}")
-    print("-" * 55)
-    print(f"{'Frequency (Hz)':<25} | {f_animal:<12.3f} | {f_robot:<12.3f}")
-    print(f"{'Joint Amplitude (rad)':<25} | {a_animal:<12.3f} | {a_robot:<12.3f}")
-    print(f"{'Phase Lag / IPL (rad)':<25} | {ipl_animal:<12.3f} | {ipl_robot:<12.3f}")
-    print("="*55 + "\n")
-
-    find_best_imitation(f_animal, ipl_animal, a_animal)
-
+    print("\n" + "=" * 57)
+    print(f"{'METRIC COMPARISON':^57}")
+    print("=" * 57)
+    print(f"{'Metric':<25} | {'Animal (Scaled)':<14} | {'CPG Baseline':<14}")
+    print("-" * 57)
+    print(f"{'Frequency (Hz)':<25} | {f_animal:<14.3f} | {f_robot:<14.3f}")
+    print(f"{'Joint Amplitude (rad)':<25} | {a_animal:<14.3f} | {a_robot:<14.3f}")
+    print(f"{'Phase Lag / IPL (rad)':<25} | {ipl_animal:<14.3f} | {ipl_robot:<14.3f}")
+    print("=" * 57 + "\n")
+    # TO DO  Optimization
 
 if __name__ == '__main__':
-    exercise2_3(plot=True)
-
+    exercise2_3()

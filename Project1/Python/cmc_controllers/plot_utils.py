@@ -114,7 +114,125 @@ def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
     plt.tight_layout()
     plt.savefig(base_path + 'drive_pl_heatmaps.png', dpi=150)
     plt.show()
+
+
+def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path):
+    """
+    Plots heatmaps of forward speed, lateral speed, and CoT over a grid of
+    drive_left × drive_right values.
+    get_metrics(drive_left, drive_right) must return (speed_forward, speed_lateral, cot).
+    """
+    n = len(drive_vals)
+
+    grid_speed_fwd = np.full((n, n), np.nan)
+    grid_speed_lat = np.full((n, n), np.nan)
+    grid_cot       = np.full((n, n), np.nan)
+
+    for i, dl in enumerate(drive_vals):
+        for j, dr in enumerate(drive_vals):
+            fwd, lat, cot = get_metrics(dl, dr)
+            grid_speed_fwd[i, j] = fwd
+            grid_speed_lat[i, j] = lat
+            grid_cot[i, j]       = cot
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+    grids  = [grid_speed_fwd, grid_speed_lat, grid_cot]
+    titles = ['Forward speed (m/s)', 'Lateral speed (m/s)', 'CoT (J/m)']
+    labels = [f'{v:.2f}' for v in drive_vals]
+
+    for ax, grid, title in zip(axes, grids, titles):
+        im = ax.imshow(grid, aspect='auto', origin='lower', cmap='viridis')
+        plt.colorbar(im, ax=ax)
+        ax.set_xticks(range(n))
+        ax.set_xticklabels(labels, rotation=45)
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(labels)
+        ax.set_xlabel('Drive right')
+        ax.set_ylabel('Drive left')
+        ax.set_title(title)
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'diff_drive_heatmaps.png', dpi=150)
+    plt.show()
 # =======
+def plot_kinematics_comparison(animal_times, animal_joints, robot_times, robot_joints, base_path):
+    """
+    Compare animal and robot joint kinematics over one normalized cycle.
+    Both arrays: shape (T, 8), angles in radians.
+    Returns per-joint RMSE array.
+    """
+    from scipy.interpolate import interp1d
+
+    n_pts = len(animal_times)
+    n_joints = 8
+
+    # Resample robot onto animal's time grid (normalized to [0,1])
+    t_norm = np.linspace(0, 1, n_pts)
+    t_robot_norm = np.linspace(0, 1, len(robot_times))
+    robot_rs = np.zeros((n_pts, n_joints))
+    for j in range(n_joints):
+        robot_rs[:, j] = interp1d(t_robot_norm, robot_joints[:, j], kind='linear')(t_norm)
+
+    # Remove DC offset from both (compare shape, not absolute angle)
+    animal_c = animal_joints - animal_joints.mean(axis=0)
+    robot_c  = robot_rs     - robot_rs.mean(axis=0)
+
+    # Phase-align via cross-correlation on joint 0
+    xcorr = np.correlate(animal_c[:, 0], robot_c[:, 0], mode='full')
+    shift = np.argmax(xcorr) - (n_pts - 1)
+    robot_aligned = np.roll(robot_c, shift, axis=0)
+
+    rmse = np.sqrt(np.mean((animal_c - robot_aligned) ** 2, axis=0))
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8))
+
+    # Animal
+    ax = axes[0, 0]
+    for j in range(n_joints):
+        ax.plot(t_norm, animal_c[:, j], label=f'J{j}')
+    ax.set_title('Animal joint angles (mean-removed)')
+    ax.set_xlabel('Normalized cycle')
+    ax.set_ylabel('Angle (rad)')
+    ax.legend(fontsize=7, ncol=2)
+
+    # Robot
+    ax = axes[0, 1]
+    for j in range(n_joints):
+        ax.plot(t_norm, robot_aligned[:, j], label=f'J{j}')
+    ax.set_title('Robot joint angles (best imitation, phase-aligned)')
+    ax.set_xlabel('Normalized cycle')
+    ax.set_ylabel('Angle (rad)')
+    ax.legend(fontsize=7, ncol=2)
+
+    # Overlay first 4 joints
+    ax = axes[1, 0]
+    colors4 = plt.rcParams['axes.prop_cycle'].by_key()['color'][:4]
+    for j in range(4):
+        ax.plot(t_norm, animal_c[:, j],   '--', color=colors4[j], label=f'Animal J{j}')
+        ax.plot(t_norm, robot_aligned[:, j], '-', color=colors4[j], label=f'Robot J{j}')
+    ax.set_title('Overlay joints 0–3  (-- animal, — robot)')
+    ax.set_xlabel('Normalized cycle')
+    ax.set_ylabel('Angle (rad)')
+    ax.legend(fontsize=6, ncol=2)
+
+    # RMSE bar
+    ax = axes[1, 1]
+    ax.bar(range(n_joints), rmse, color='steelblue')
+    ax.axhline(np.mean(rmse), color='red', linestyle='--', label=f'Mean = {np.mean(rmse):.4f} rad')
+    ax.set_xticks(range(n_joints))
+    ax.set_xticklabels([f'J{j}' for j in range(n_joints)])
+    ax.set_ylabel('RMSE (rad)')
+    ax.set_title('Per-joint RMSE (animal vs robot)')
+    ax.legend(fontsize=8)
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'kinematics_comparison.png', dpi=150)
+    plt.show()
+
+    return rmse
+
+
 def plot_results_EXO2_1(
     sim_times,
     sensor_data_joints_positions,

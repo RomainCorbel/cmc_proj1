@@ -328,6 +328,12 @@ def compute_mechanical_energy_and_cot(times: np.ndarray,
 
     com_pos = np.average(links_positions, axis=1, weights=LINKS_MASSES)
     d_fwd = np.linalg.norm(com_pos[-1] - com_pos[0])
-    cot = energy / d_fwd if d_fwd > 1e-9 else np.nan
+
+    deltas = np.diff(com_pos, axis=0)  # shape: (n_frames-1, 3)
+    step_distances = np.linalg.norm(deltas, axis=1)  # shape: (n_frames-1,)
+    total_distance = np.sum(step_distances)
+
+
+    cot = energy / total_distance if total_distance > 1e-9 else np.nan
 
     return energy, cot
