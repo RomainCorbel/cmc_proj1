@@ -1,7 +1,8 @@
+from matplotlib.pylab import norm
 import matplotlib.pyplot as plt
 import numpy as np
 from cmc_controllers.metrics import LINKS_MASSES
-
+from matplotlib.colors import SymLogNorm
 def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_data_links_positions, base_path):
 
     """
@@ -59,19 +60,34 @@ def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
     titles = ['Forward speed (m/s)', 'IPL (rad)', 'CoT (J/m)']
 
     for ax, grid, title in zip(axes, grids, titles):
-        # origin='lower' ensures the lowest amplitude value is at the bottom
-        im = ax.imshow(grid, aspect='auto', origin='lower', cmap='viridis')
+        # 1. Normalisation et affichage de la Heatmap
+        norm = SymLogNorm(linthresh=0.01, vmin=grid.min(), vmax=grid.max())
+        im = ax.imshow(grid, norm=norm, aspect='auto', origin='lower', cmap='viridis')
         plt.colorbar(im, ax=ax)
         
-        # 3. Correct the Ticks and Labels
+        # --- 2. BOUCLE POUR AFFICHER LES VALEURS ---
+        for i in range(n_amp):    # Axe Y
+            for j in range(n_twl): # Axe X
+                val = grid[i, j]
+                
+                # Choix de la couleur du texte pour la lisibilité
+                # Si la valeur est élevée (couleur claire dans viridis), on écrit en noir
+                # Si elle est basse (couleur sombre), on écrit en blanc
+                color_text = "white" if val < (grid.max() * 0.5) else "black"
+                
+                ax.text(j, i, f'{val:.2f}', 
+                        ha="center", va="center", 
+                        color=color_text, fontsize=8)
+        
+        # 3. Configuration des Ticks et Labels
         ax.set_yticks(range(n_amp))
         ax.set_yticklabels([f'{a:.2f}' for a in amp_range])
         
         ax.set_xticks(range(n_twl))
         ax.set_xticklabels([f'{t:.2f}' for t in twl_range], rotation=45)
         
-        ax.set_ylabel('Amplitude') # Y is now Amplitude
-        ax.set_xlabel('TWL')       # X is now TWL
+        ax.set_ylabel('Amplitude')
+        ax.set_xlabel('TWL')
         ax.set_title(title)
     
     plt.tight_layout()
@@ -215,6 +231,12 @@ def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, ipl_animal_mean, f_robot
                     linewidth=1.5, alpha=0.8, label='Mean Animal')
     axes[2].axhline(y=ipl_robot_mean, color=color_robot, linestyle='--', 
                     linewidth=1.5, alpha=0.8, label='Mean Controller')
+    axes[2].text(1.01, ipl_animal_mean, f'{ipl_animal_mean:.3f}', 
+                    color=color_animal, va='center', fontweight='bold',
+                    transform=axes[2].get_yaxis_transform())
+    axes[2].text(1.01, ipl_robot_mean, f'{ipl_robot_mean:.3f}', 
+                 color=color_robot, va='center', fontweight='bold',
+                 transform=axes[2].get_yaxis_transform())
     axes[2].set_ylabel('Phase Lag (rad)')
     axes[2].set_title('Inter-joint Phase Lags')
     axes[2].set_xticks(x_couples)
@@ -357,17 +379,17 @@ def plot_results_EXO2_1(
     # ─────────────────────────────────────────────
     fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
 
-    for i in range(n_osc):
+    for i in range(n_joints):
         axes[0].plot(t_ctrl, phases[:, i], alpha=0.7, label=f'Joint {i}')
-    axes[0].legend()
+    axes[0].legend(loc='lower right', fontsize=7, ncol=2)
     axes[0].set_ylabel('Phase θ [rad]')
     axes[0].set_title('Oscillator Phases')
 
-    for i in range(n_osc):
+    for i in range(n_joints):
         axes[1].plot(t_ctrl, amplitudes[:, i], alpha=0.7, label=f'Joint {i}')
     axes[1].set_ylabel('Amplitude r')
     axes[1].set_xlabel('Time [s]')
-    axes[1].legend()
+    axes[1].legend(loc='lower right', fontsize=7, ncol=2)
     axes[1].set_title('Oscillator Amplitudes')
 
     plt.tight_layout()
@@ -381,14 +403,14 @@ def plot_results_EXO2_1(
     for i in range(n_joints):
         axes[0].plot(t_ctrl, M_sum[:, i], alpha=0.7, label=f'Joint {i}')
     axes[0].set_ylabel('ML + MR')
-    axes[0].legend()
+    axes[0].legend(loc='lower right', fontsize=7, ncol=2)
     axes[0].set_title('Muscle Output Sum')
 
     for i in range(n_joints):
-        axes[1].plot(t_ctrl, M_diff[:, i], alpha=0.7)
+        axes[1].plot(t_ctrl, M_diff[:, i], alpha=0.7, label=f'Joint {i}')
     axes[1].set_ylabel('ML - MR')
     axes[1].set_xlabel('Time [s]')
-    axes[1].legend()
+    axes[1].legend(loc='lower right', fontsize=7, ncol=2)
     axes[1].set_title('Muscle Output Difference')
 
     plt.tight_layout()
@@ -397,19 +419,6 @@ def plot_results_EXO2_1(
     # ─────────────────────────────────────────────
     # FIG 3: Joint angles (simulation)
     # ─────────────────────────────────────────────
-    # fig, ax = plt.subplots(figsize=(10, 4))
-
-    # for j in range(8):
-    #     ax.plot(t_sim, sensor_data_joints_positions[sim_mask, j], label=f'joint {j}', alpha=0.7)
-
-    # ax.set_ylabel('Joint angle [rad]')
-    # ax.set_xlabel('Time [s]')
-    # ax.set_title('Joint Angles (Simulation)')
-    # ax.legend(loc='upper right', fontsize=7, ncol=2)
-
-    # plt.tight_layout()
-    # plt.savefig(base_path + 'joint_angles.png', dpi=150)
-
     fig, ax = plt.subplots(figsize=(10, 4))
 
     for j in range(8):
@@ -423,7 +432,7 @@ def plot_results_EXO2_1(
     ax.set_ylabel('Joint angle [rad]')
     ax.set_xlabel('Time [s]')
     ax.set_title('Joint Angles (Simulation)')
-    ax.legend(loc='upper right', fontsize=7, ncol=2)
+    ax.legend(loc='upper left', fontsize=7, ncol=2)
 
     plt.tight_layout()
     plt.savefig(base_path + 'joint_angles.png', dpi=150)
