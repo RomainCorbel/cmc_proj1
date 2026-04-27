@@ -117,8 +117,17 @@ def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
     titles = ['Forward speed (m/s)', 'CoT (J/m)']
 
     for ax, grid, title in zip(axes, grids, titles):
-        im = ax.imshow(grid, aspect='auto', origin='lower', cmap='viridis')
+        norm = SymLogNorm(linthresh=0.01, vmin=np.nanmin(grid), vmax=np.nanmax(grid))
+        im = ax.imshow(grid, norm=norm, aspect='auto', origin='lower', cmap='viridis')
         plt.colorbar(im, ax=ax)
+
+        for i in range(n_drive):
+            for j in range(n_pl):
+                val = grid[i, j]
+                if not np.isnan(val):
+                    color_text = "white" if val < (np.nanmax(grid) * 0.5) else "black"
+                    ax.text(j, i, f'{val:.2f}', ha="center", va="center", color=color_text, fontsize=8)
+
         ax.set_xticks(range(n_pl))
         ax.set_xticklabels([f'{p:.2f}' for p in pl_vals], rotation=45)
         ax.set_yticks(range(n_drive))
@@ -148,8 +157,17 @@ def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path):
     labels = [f'{v:.2f}' for v in drive_vals]
 
     fig, ax = plt.subplots(1, 1, figsize=(6, 5))
-    im = ax.imshow(grid_curvature, aspect='auto', origin='lower', cmap='viridis')
+    norm = SymLogNorm(linthresh=0.01, vmin=np.nanmin(grid_curvature), vmax=np.nanmax(grid_curvature))
+    im = ax.imshow(grid_curvature, norm=norm, aspect='auto', origin='lower', cmap='viridis')
     plt.colorbar(im, ax=ax)
+
+    for i in range(n):
+        for j in range(n):
+            val = grid_curvature[i, j]
+            if not np.isnan(val):
+                color_text = "white" if val < (np.nanmax(grid_curvature) * 0.5) else "black"
+                ax.text(j, i, f'{val:.2f}', ha="center", va="center", color=color_text, fontsize=8)
+
     ax.set_xticks(range(n))
     ax.set_xticklabels(labels, rotation=45)
     ax.set_yticks(range(n))
