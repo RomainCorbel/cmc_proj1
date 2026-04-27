@@ -33,12 +33,10 @@ def get_animal_data(path):
     joint_angles = np.deg2rad(data[:, 1:9])
 
     freqs, amplitudes = compute_mechanical_frequency_amplitude_fft(times, joint_angles)
-    # f_animal   = np.mean(freqs)
-    # amp_animal = np.mean(amplitudes)
     f_animal   = freqs
     amp_animal = amplitudes
     inds_couples = [[i, i + 1] for i in range(N_JOINT - 1)]
-    _, ipl_animal = compute_neural_phase_lags(
+    ipl_animal, ipl_animal_mean = compute_neural_phase_lags(
         times=times,
         smooth_signals=joint_angles,
         freqs=freqs,
@@ -48,7 +46,7 @@ def get_animal_data(path):
     # Dynamical scaling: frequency scales by sqrt(1/6.5) (Project Ref [4])
     freq_robot_scaled = np.sqrt(1 / 6.5) * f_animal
 
-    return freq_robot_scaled, amp_animal, ipl_animal, times, joint_angles
+    return freq_robot_scaled, amp_animal, ipl_animal, ipl_animal_mean, times, joint_angles
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -200,7 +198,7 @@ def exercise2_3():
     """
     pylog.set_level('critical')
 
-    f_animal, a_animal, ipl_animal, animal_times, animal_joints = \
+    f_animal, a_animal, ipl_animal, ipl_animal_mean, animal_times, animal_joints = \
         get_animal_data(ANIMAL_DATA_PATH)
 
     sim_result = 'logs/exercise2_1/simulation.hdf5'
@@ -211,13 +209,13 @@ def exercise2_3():
 
     f_robot, a_robot = compute_mechanical_frequency_amplitude_fft(
         sim_times, joint_pos_baseline)
-    _, ipl_robot = compute_neural_phase_lags(
+    ipl_robot , ipl_robot_mean = compute_neural_phase_lags(
         sim_times, joint_pos_baseline, f_robot,
         [[i, i + 1] for i in range(N_JOINT - 1)])
 
     plot_results_EXO2_3(
-        f_animal, a_animal, ipl_animal, 
-        f_robot, a_robot, ipl_robot, BASE_PATH
+        f_animal, a_animal, ipl_animal, ipl_animal_mean,
+        f_robot, a_robot, ipl_robot, ipl_robot_mean, BASE_PATH
     )
     # TO DO  Optimization
 

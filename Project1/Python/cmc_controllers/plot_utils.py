@@ -156,7 +156,7 @@ def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path):
     plt.savefig(base_path + 'diff_drive_heatmaps.png', dpi=150)
     plt.show()
 # =======
-def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, f_robot, a_robot, ipl_robot, base_path):
+def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, ipl_animal_mean, f_robot, a_robot, ipl_robot, ipl_robot_mean, base_path):
     """
     Plots per-joint bar comparisons for Frequency, Amplitude, and Phase Lag.
     """
@@ -174,19 +174,25 @@ def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, f_robot, a_robot, ipl_ro
     x_joints = np.arange(n_joints)
     x_couples = np.arange(n_joints - 1)
 
-    # --- 1. Frequency Comparison (Per Joint) ---
-    axes[0].bar(x_joints - width/2, f_animal, width, label='Animal', 
+    # --- 1. Frequency Comparison  ---
+    x_freq = np.arange(1) 
+    
+    # On calcule la moyenne globale si ce n'est pas déjà fait
+    mean_f_animal = np.mean(f_animal)
+    mean_f_robot  = np.mean(f_robot)
+
+    axes[0].bar(0 - width/2, mean_f_animal, width, label='Animal', 
                 color=color_animal, edgecolor='white', linewidth=0.5)
-    axes[0].bar(x_joints + width/2, f_robot, width, label='Controller', 
+    axes[0].bar(0 + width/2, mean_f_robot, width, label='Controller', 
                 color=color_robot, edgecolor='white', linewidth=0.5)
     
     axes[0].set_ylabel('Frequency (Hz)')
-    axes[0].set_title('Frequency per Joint')
-    axes[0].set_xticks(x_joints)
-    axes[0].set_xticklabels(joints_labels)
+    axes[0].set_title('Global Average Frequency')
+    axes[0].set_xticks([0])
+    axes[0].set_xticklabels(['All Joints']) # Ou laisser vide
     axes[0].legend()
     axes[0].grid(axis='y', linestyle=':', alpha=0.6)
-
+    
     # --- 2. Amplitude Comparison (Per Joint) ---
     axes[1].bar(x_joints - width/2, a_animal, width, label='Animal', 
                 color=color_animal, edgecolor='white', linewidth=0.5)
@@ -196,6 +202,7 @@ def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, f_robot, a_robot, ipl_ro
     axes[1].set_ylabel('Amplitude (rad)')
     axes[1].set_title('Amplitude per Joint')
     axes[1].set_xticks(x_joints)
+    axes[1].legend()
     axes[1].set_xticklabels(joints_labels)
     axes[1].grid(axis='y', linestyle=':', alpha=0.6)
 
@@ -204,10 +211,14 @@ def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, f_robot, a_robot, ipl_ro
                 color=color_animal, edgecolor='white', linewidth=0.5)
     axes[2].bar(x_couples + width/2, ipl_robot, width, label='Controller', 
                 color=color_robot, edgecolor='white', linewidth=0.5)
-    
+    axes[2].axhline(y=ipl_animal_mean, color=color_animal, linestyle='--', 
+                    linewidth=1.5, alpha=0.8, label='Mean Animal')
+    axes[2].axhline(y=ipl_robot_mean, color=color_robot, linestyle='--', 
+                    linewidth=1.5, alpha=0.8, label='Mean Controller')
     axes[2].set_ylabel('Phase Lag (rad)')
     axes[2].set_title('Inter-joint Phase Lags')
     axes[2].set_xticks(x_couples)
+    axes[2].legend()
     axes[2].set_xticklabels(couples_labels)
     axes[2].grid(axis='y', linestyle=':', alpha=0.6)
 
@@ -347,14 +358,16 @@ def plot_results_EXO2_1(
     fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
 
     for i in range(n_osc):
-        axes[0].plot(t_ctrl, phases[:, i], alpha=0.7)
+        axes[0].plot(t_ctrl, phases[:, i], alpha=0.7, label=f'Joint {i}')
+    axes[0].legend()
     axes[0].set_ylabel('Phase θ [rad]')
     axes[0].set_title('Oscillator Phases')
 
     for i in range(n_osc):
-        axes[1].plot(t_ctrl, amplitudes[:, i], alpha=0.7)
+        axes[1].plot(t_ctrl, amplitudes[:, i], alpha=0.7, label=f'Joint {i}')
     axes[1].set_ylabel('Amplitude r')
     axes[1].set_xlabel('Time [s]')
+    axes[1].legend()
     axes[1].set_title('Oscillator Amplitudes')
 
     plt.tight_layout()
@@ -366,14 +379,16 @@ def plot_results_EXO2_1(
     fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
 
     for i in range(n_joints):
-        axes[0].plot(t_ctrl, M_sum[:, i], alpha=0.7)
+        axes[0].plot(t_ctrl, M_sum[:, i], alpha=0.7, label=f'Joint {i}')
     axes[0].set_ylabel('ML + MR')
+    axes[0].legend()
     axes[0].set_title('Muscle Output Sum')
 
     for i in range(n_joints):
         axes[1].plot(t_ctrl, M_diff[:, i], alpha=0.7)
     axes[1].set_ylabel('ML - MR')
     axes[1].set_xlabel('Time [s]')
+    axes[1].legend()
     axes[1].set_title('Muscle Output Difference')
 
     plt.tight_layout()
