@@ -134,39 +134,29 @@ def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
 
 def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path):
     """
-    Plots heatmaps of forward speed, lateral speed, and CoT over a grid of
-    drive_left × drive_right values.
-    get_metrics(drive_left, drive_right) must return (speed_forward, speed_lateral, cot).
+    Plots a heatmap of trajectory curvature over a grid of drive_left × drive_right values.
+    get_metrics(drive_left, drive_right) must return curvature (scalar).
     """
     n = len(drive_vals)
 
-    grid_speed_fwd = np.full((n, n), np.nan)
-    grid_speed_lat = np.full((n, n), np.nan)
-    grid_cot       = np.full((n, n), np.nan)
+    grid_curvature = np.full((n, n), np.nan)
 
     for i, dl in enumerate(drive_vals):
         for j, dr in enumerate(drive_vals):
-            fwd, lat, cot = get_metrics(dl, dr)
-            grid_speed_fwd[i, j] = fwd
-            grid_speed_lat[i, j] = lat
-            grid_cot[i, j]       = cot
+            grid_curvature[i, j] = get_metrics(dl, dr)
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
-    grids  = [grid_speed_fwd, grid_speed_lat, grid_cot]
-    titles = ['Forward speed (m/s)', 'Lateral speed (m/s)', 'CoT (J/m)']
     labels = [f'{v:.2f}' for v in drive_vals]
 
-    for ax, grid, title in zip(axes, grids, titles):
-        im = ax.imshow(grid, aspect='auto', origin='lower', cmap='viridis')
-        plt.colorbar(im, ax=ax)
-        ax.set_xticks(range(n))
-        ax.set_xticklabels(labels, rotation=45)
-        ax.set_yticks(range(n))
-        ax.set_yticklabels(labels)
-        ax.set_xlabel('Drive right')
-        ax.set_ylabel('Drive left')
-        ax.set_title(title)
+    fig, ax = plt.subplots(1, 1, figsize=(6, 5))
+    im = ax.imshow(grid_curvature, aspect='auto', origin='lower', cmap='viridis')
+    plt.colorbar(im, ax=ax)
+    ax.set_xticks(range(n))
+    ax.set_xticklabels(labels, rotation=45)
+    ax.set_yticks(range(n))
+    ax.set_yticklabels(labels)
+    ax.set_xlabel('Drive right')
+    ax.set_ylabel('Drive left')
+    ax.set_title('Trajectory curvature (1/m)')
 
     plt.tight_layout()
     plt.savefig(base_path + 'diff_drive_heatmaps.png', dpi=150)

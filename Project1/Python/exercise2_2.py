@@ -89,34 +89,22 @@ def get_metrics_drive_pl(drive, pl, base_path):
 
 
 def get_metrics_diff_drive(drive_left, drive_right, base_path):
-    """Load forward speed, lateral speed, and CoT for a (drive_left, drive_right) pair."""
+    """Load trajectory curvature for a (drive_left, drive_right) pair."""
     hdf5_path = (
         base_path
         + f"simulation_drive_left{drive_left:0.3f}_drive_right{drive_right:0.3f}.hdf5"
     )
     if not os.path.exists(hdf5_path):
-        return np.nan, np.nan, np.nan
+        return np.nan
     with h5py.File(hdf5_path, "r") as f:
         sim_times = f['times'][:]
         sensor_data_links = f['FARMSLISTanimats']['0']['sensors']['links']['array'][:]
-        sensor_data_joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
 
     links_positions = sensor_data_links[:, :, 7:10]
-    links_velocities = sensor_data_links[:, :, 14:17]
-    joints_torques = sensor_data_joints[:, :, 2]
-    joints_velocities = sensor_data_joints[:, :, 1]
+    trajectory = np.mean(links_positions[:, :, :2], axis=1)
+    timestep = float(sim_times[1] - sim_times[0])
 
-    speed_forward, speed_lateral = compute_mechanical_speed(
-        links_positions=links_positions,
-        links_velocities=links_velocities,
-    )
-    _, cot = compute_mechanical_energy_and_cot(
-        times=sim_times,
-        links_positions=links_positions,
-        joints_torques=joints_torques,
-        joints_velocities=joints_velocities,
-    )
-    return speed_forward, speed_lateral, cot
+    return compute_trajectory_curvature(trajectory=trajectory, timestep=timestep)
 
 
 def exercise2_2(**kwargs):
