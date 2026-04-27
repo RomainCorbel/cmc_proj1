@@ -4,7 +4,7 @@ import os
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-
+from cmc_controllers.plot_utils import plot_results_EXO2_3
 from farms_core import pylog
 from cmc_controllers.metrics import (
     compute_mechanical_frequency_amplitude_fft,
@@ -33,9 +33,10 @@ def get_animal_data(path):
     joint_angles = np.deg2rad(data[:, 1:9])
 
     freqs, amplitudes = compute_mechanical_frequency_amplitude_fft(times, joint_angles)
-    f_animal   = np.mean(freqs)
-    amp_animal = np.mean(amplitudes)
-
+    # f_animal   = np.mean(freqs)
+    # amp_animal = np.mean(amplitudes)
+    f_animal   = freqs
+    amp_animal = amplitudes
     inds_couples = [[i, i + 1] for i in range(N_JOINT - 1)]
     _, ipl_animal = compute_neural_phase_lags(
         times=times,
@@ -199,34 +200,25 @@ def exercise2_3():
     """
     pylog.set_level('critical')
 
-    # ── Animal data ──────────────────────────────────────────────────────────
     f_animal, a_animal, ipl_animal, animal_times, animal_joints = \
         get_animal_data(ANIMAL_DATA_PATH)
 
-    # ── Robot baseline (exercise 2.1) ────────────────────────────────────────
     sim_result = 'logs/exercise2_1/simulation.hdf5'
     with h5py.File(sim_result, "r") as f:
         sim_times   = f['times'][:]
         joints_data = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
     joint_pos_baseline = joints_data[:, :N_JOINT, 0]
 
-    f_robot_arr, a_robot_arr = compute_mechanical_frequency_amplitude_fft(
+    f_robot, a_robot = compute_mechanical_frequency_amplitude_fft(
         sim_times, joint_pos_baseline)
-    f_robot  = float(np.mean(f_robot_arr))
-    a_robot  = float(np.mean(a_robot_arr))
     _, ipl_robot = compute_neural_phase_lags(
-        sim_times, joint_pos_baseline, f_robot_arr,
+        sim_times, joint_pos_baseline, f_robot,
         [[i, i + 1] for i in range(N_JOINT - 1)])
 
-    print("\n" + "=" * 57)
-    print(f"{'METRIC COMPARISON':^57}")
-    print("=" * 57)
-    print(f"{'Metric':<25} | {'Animal (Scaled)':<14} | {'CPG Baseline':<14}")
-    print("-" * 57)
-    print(f"{'Frequency (Hz)':<25} | {f_animal:<14.3f} | {f_robot:<14.3f}")
-    print(f"{'Joint Amplitude (rad)':<25} | {a_animal:<14.3f} | {a_robot:<14.3f}")
-    print(f"{'Phase Lag / IPL (rad)':<25} | {ipl_animal:<14.3f} | {ipl_robot:<14.3f}")
-    print("=" * 57 + "\n")
+    plot_results_EXO2_3(
+        f_animal, a_animal, ipl_animal, 
+        f_robot, a_robot, ipl_robot, BASE_PATH
+    )
     # TO DO  Optimization
 
 if __name__ == '__main__':

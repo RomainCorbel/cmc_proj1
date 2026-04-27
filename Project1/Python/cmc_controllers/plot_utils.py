@@ -28,52 +28,52 @@ def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_da
 
     fig2, ax2 = plt.subplots(figsize=(6, 6))
     ax2.plot(com_xy[:, 0], com_xy[:, 1], linewidth=1.5)
-    ax2.scatter(com_xy[0, 0], com_xy[0, 1], color='green', zorder=5, label='start')
-    ax2.scatter(com_xy[-1, 0], com_xy[-1, 1], color='red', zorder=5, label='end')
     ax2.set_xlabel('x (m)')
     ax2.set_ylabel('y (m)')
     ax2.set_title('CoM trajectory (2D)')
-    ax2.legend()
     plt.tight_layout()
     plt.savefig(base_path + 'com_trajectory.png')
-
     plt.show()
     print(f'CoM displacement: {np.linalg.norm(com_xy[-1] - com_xy[0]):.4f} m')
 
 def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
-    """
-    Plots heatmaps of forward speed, IPL, and CoT over a grid of TWL and amplitude values.
-    """
     n_twl = len(twl_range)
     n_amp = len(amp_range)
 
-    grid_speed = np.zeros((n_twl, n_amp))
-    grid_ipl   = np.zeros((n_twl, n_amp))
-    grid_cot   = np.zeros((n_twl, n_amp))
+    # 1. Initialize grids as (Rows=Amplitude, Cols=TWL)
+    grid_speed = np.zeros((n_amp, n_twl))
+    grid_ipl   = np.zeros((n_amp, n_twl))
+    grid_cot   = np.zeros((n_amp, n_twl))
 
     for i, twl in enumerate(twl_range):
         for j, amp in enumerate(amp_range):
             val1, val2, val3 = get_metrics(twl, amp)
-            grid_speed[i, j] = val1
-            grid_ipl[i, j]   = val3
-            grid_cot[i, j]   = val2
+            # 2. Map j (amplitude) to the first dimension (Y-axis)
+            # and i (twl) to the second dimension (X-axis)
+            grid_speed[j, i] = val1
+            grid_ipl[j, i]   = val3
+            grid_cot[j, i]   = val2
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     grids  = [grid_speed, grid_ipl, grid_cot]
     titles = ['Forward speed (m/s)', 'IPL (rad)', 'CoT (J/m)']
 
     for ax, grid, title in zip(axes, grids, titles):
+        # origin='lower' ensures the lowest amplitude value is at the bottom
         im = ax.imshow(grid, aspect='auto', origin='lower', cmap='viridis')
         plt.colorbar(im, ax=ax)
-        ax.set_xticks(range(n_amp))
-        ax.set_xticklabels([f'{a:.2f}' for a in amp_range], rotation=45)
-        ax.set_yticks(range(n_twl))
-        ax.set_yticklabels([f'{t:.2f}' for t in twl_range])
-        ax.set_xlabel('Amplitude')
-        ax.set_ylabel('TWL')
+        
+        # 3. Correct the Ticks and Labels
+        ax.set_yticks(range(n_amp))
+        ax.set_yticklabels([f'{a:.2f}' for a in amp_range])
+        
+        ax.set_xticks(range(n_twl))
+        ax.set_xticklabels([f'{t:.2f}' for t in twl_range], rotation=45)
+        
+        ax.set_ylabel('Amplitude') # Y is now Amplitude
+        ax.set_xlabel('TWL')       # X is now TWL
         ax.set_title(title)
-
+    
     plt.tight_layout()
     plt.savefig(base_path + 'gridsearch_heatmaps.png', dpi=150)
     plt.show()
@@ -156,6 +156,65 @@ def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path):
     plt.savefig(base_path + 'diff_drive_heatmaps.png', dpi=150)
     plt.show()
 # =======
+def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, f_robot, a_robot, ipl_robot, base_path):
+    """
+    Plots per-joint bar comparisons for Frequency, Amplitude, and Phase Lag.
+    """
+    n_joints = len(a_animal)
+    joints_labels = [f"J{i}" for i in range(n_joints)]
+    couples_labels = [f"J{i}-{i+1}" for i in range(n_joints - 1)]
+
+    # --- Configuration des couleurs (Viridis) ---
+    cmap = plt.get_cmap('viridis')
+    color_animal = cmap(0.3)  # Greenish
+    color_robot  = cmap(0.7)  # Purplish
+    
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    width = 0.35
+    x_joints = np.arange(n_joints)
+    x_couples = np.arange(n_joints - 1)
+
+    # --- 1. Frequency Comparison (Per Joint) ---
+    axes[0].bar(x_joints - width/2, f_animal, width, label='Animal', 
+                color=color_animal, edgecolor='white', linewidth=0.5)
+    axes[0].bar(x_joints + width/2, f_robot, width, label='Controller', 
+                color=color_robot, edgecolor='white', linewidth=0.5)
+    
+    axes[0].set_ylabel('Frequency (Hz)')
+    axes[0].set_title('Frequency per Joint')
+    axes[0].set_xticks(x_joints)
+    axes[0].set_xticklabels(joints_labels)
+    axes[0].legend()
+    axes[0].grid(axis='y', linestyle=':', alpha=0.6)
+
+    # --- 2. Amplitude Comparison (Per Joint) ---
+    axes[1].bar(x_joints - width/2, a_animal, width, label='Animal', 
+                color=color_animal, edgecolor='white', linewidth=0.5)
+    axes[1].bar(x_joints + width/2, a_robot, width, label='Controller', 
+                color=color_robot, edgecolor='white', linewidth=0.5)
+    
+    axes[1].set_ylabel('Amplitude (rad)')
+    axes[1].set_title('Amplitude per Joint')
+    axes[1].set_xticks(x_joints)
+    axes[1].set_xticklabels(joints_labels)
+    axes[1].grid(axis='y', linestyle=':', alpha=0.6)
+
+    # --- 3. Phase Lag Comparison (Per Couple) ---
+    axes[2].bar(x_couples - width/2, ipl_animal, width, label='Animal', 
+                color=color_animal, edgecolor='white', linewidth=0.5)
+    axes[2].bar(x_couples + width/2, ipl_robot, width, label='Controller', 
+                color=color_robot, edgecolor='white', linewidth=0.5)
+    
+    axes[2].set_ylabel('Phase Lag (rad)')
+    axes[2].set_title('Inter-joint Phase Lags')
+    axes[2].set_xticks(x_couples)
+    axes[2].set_xticklabels(couples_labels)
+    axes[2].grid(axis='y', linestyle=':', alpha=0.6)
+
+    plt.tight_layout()
+    plt.savefig(base_path + 'animal_controller_comparison.png', dpi=150)
+    plt.show()
+
 def plot_kinematics_comparison(animal_times, animal_joints, robot_times, robot_joints, base_path):
     """
     Compare animal and robot joint kinematics over one normalized cycle.
@@ -323,10 +382,28 @@ def plot_results_EXO2_1(
     # ─────────────────────────────────────────────
     # FIG 3: Joint angles (simulation)
     # ─────────────────────────────────────────────
+    # fig, ax = plt.subplots(figsize=(10, 4))
+
+    # for j in range(8):
+    #     ax.plot(t_sim, sensor_data_joints_positions[sim_mask, j], label=f'joint {j}', alpha=0.7)
+
+    # ax.set_ylabel('Joint angle [rad]')
+    # ax.set_xlabel('Time [s]')
+    # ax.set_title('Joint Angles (Simulation)')
+    # ax.legend(loc='upper right', fontsize=7, ncol=2)
+
+    # plt.tight_layout()
+    # plt.savefig(base_path + 'joint_angles.png', dpi=150)
+
     fig, ax = plt.subplots(figsize=(10, 4))
 
     for j in range(8):
-        ax.plot(t_sim, sensor_data_joints_positions[sim_mask, j], label=f'joint {j}', alpha=0.7)
+        # 1. Generate the color directly from the string 'YlOrRd'
+        color = plt.get_cmap('viridis')(j / 7) 
+        
+        # 2. Add the 0.2 offset and the color
+        ax.plot(t_sim, sensor_data_joints_positions[sim_mask, j] + (j * 0.2), 
+                label=f'joint {j}', color=color, alpha=0.9)
 
     ax.set_ylabel('Joint angle [rad]')
     ax.set_xlabel('Time [s]')
@@ -348,13 +425,10 @@ def plot_results_EXO2_1(
     fig, ax = plt.subplots(figsize=(6, 6))
 
     ax.plot(com_xy[:, 0], com_xy[:, 1], linewidth=1.5)
-    ax.scatter(com_xy[0, 0], com_xy[0, 1], color='green', label='start')
-    ax.scatter(com_xy[-1, 0], com_xy[-1, 1], color='red', label='end')
 
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
     ax.set_title('CoM Trajectory (2D)')
-    ax.legend()
 
     plt.tight_layout()
     plt.savefig(base_path + 'com_trajectory.png', dpi=150)
