@@ -55,7 +55,7 @@ def post_processing():
 
     inds_couples = [[i, i+1]
                     for i in range(neural_signals_smoothed.shape[1] - 1)]
-    _, ipls_mean = compute_neural_phase_lags(times=sim_times,
+    ipls, ipls_mean = compute_neural_phase_lags(times=sim_times,
                                              smooth_signals=neural_signals_smoothed,
                                              freqs=freq,
                                              inds_couples=inds_couples)
@@ -80,14 +80,18 @@ def post_processing():
 
     pylog.warning("TODO: 1.2: Verify the computed metrics are consistent with the expected values")
     print('Estimated neural metrics:')
-    print('Frequencies: ', freq, '\nAmplitudes: ', amp,
+    print('Frequencies: ', freq, 'Mean frequency: ', np.mean(freq), '\nAmplitudes: ', amp, "Mean amplitude: ", np.mean(amp), 'phase lags (radians): ', ipls,
           '\nMean phase lags (radians): ', ipls_mean)
     print('Estimated mechanical metrics:')
     print(
         'Frequencies: ',
         mech_freq,
+        '\nmean frequency: ',
+        np.mean(mech_freq),
         '\nAmplitudes: ',
         mech_amp,
+        '\nmean amplitude: ',
+        np.mean(mech_amp),
         '\nforward speed: ',
         speed_forward,
         '\nlateral speed: ',
@@ -96,7 +100,6 @@ def post_processing():
         energy,
         '\nCoT: ',
         cot)
-
     #Plotting results
     plot_results_EXO1_1(
         sim_times=sim_times,
