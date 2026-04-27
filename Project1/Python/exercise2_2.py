@@ -10,6 +10,7 @@ from matplotlib import colors
 from farms_core import pylog
 
 from cmc_controllers.metrics import (
+    LINKS_MASSES,
     compute_mechanical_energy_and_cot,
     compute_mechanical_speed,
     compute_trajectory_curvature,
@@ -101,10 +102,10 @@ def get_metrics_diff_drive(drive_left, drive_right, base_path):
         sensor_data_links = f['FARMSLISTanimats']['0']['sensors']['links']['array'][:]
 
     links_positions = sensor_data_links[:, :, 7:10]
-    trajectory = np.mean(links_positions[:, :, :2], axis=1)
+    com_pos = np.average(links_positions, axis=1, weights=LINKS_MASSES)
     timestep = float(sim_times[1] - sim_times[0])
 
-    return compute_trajectory_curvature(trajectory=trajectory, timestep=timestep)
+    return compute_trajectory_curvature(trajectory=com_pos, timestep=timestep)
 
 
 def exercise2_2(**kwargs):
