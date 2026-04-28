@@ -186,5 +186,5 @@ def exercise2_2(**kwargs):
 
 
 if __name__ == '__main__':
-    exercise2_2(plot=True,run = False)
+    exercise2_2(plot=True,run = True)
 
