@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
 from simulate import runsim
-from exercise2_3 import get_animal_data
+from exercise2_3 import get_animal_data, exercise2_3
 from cmc_controllers.metrics import (
     compute_mechanical_frequency_amplitude_fft,
     compute_neural_phase_lags,
@@ -167,7 +167,7 @@ def main():
         os.remove(CSV_LOG_PATH)
 
     targets = get_targets()
-
+    print(f"Objectives are to match animal metrics: frequency={targets['freq']:.3f}, amplitude={targets['amp']:.3f}, and IPL={targets['ipl']:.3f} \n\n\n\n")
     res = minimize(
         objective_function,
         x0=[3.0, 0.5],
@@ -185,6 +185,7 @@ def main():
 
     print("\n==============================")
     print("OPTIMIZATION FINISHED")
+    print(f"Objectives are to match animal metrics: frequency={targets['freq']:.3f}, amplitude={targets['amp']:.3f}, and IPL={targets['ipl']:.3f}")
     print("==============================")
     print(f"Best Drive : {best_drive:.4f}")
     print(f"Best PL    : {best_pl:.4f}")
@@ -203,24 +204,34 @@ def main():
     axes[0].plot(evals, det[:, 1], 'b-s', label='Amp')
     axes[0].plot(evals, det[:, 2], 'g-^', label='IPL')
     axes[0].set_title("Loss Components")
+    axes[0].set_ylabel("Loss")
+    axes[0].set_xlabel("Iterations")
     axes[0].legend()
     axes[0].grid()
 
     axes[1].plot(evals, loss_history, 'k-d')
     axes[1].set_title("Total Loss")
+    axes[1].set_ylabel("Loss")
+    axes[1].set_xlabel("Iterations")
     axes[1].grid()
 
     ax2b = axes[2].twinx()
-    axes[2].plot(evals, [p[0] for p in params_history], 'b-o', label='Drive')
-    ax2b.plot(evals, [p[1] for p in params_history], 'r-s', label='PL')
+    line1, = axes[2].plot(evals, [p[0] for p in params_history], 'b-o', label='Drive')
+    line2, = ax2b.plot(evals, [p[1] for p in params_history], 'r-s', label='PL')
 
     axes[2].set_title("Parameter Evolution")
     axes[2].grid()
+    axes[2].set_ylabel("Drive Value", color='b') 
+    ax2b.set_ylabel("PL Value", color='r')
+    axes[2].set_xlabel("Iterations")
 
+    lines = [line1, line2]
+    labels = [l.get_label() for l in lines]
+    axes[2].legend(lines, labels, loc='upper left')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_PATH, "optimization_diagnostics.png"), dpi=150)
     plt.show()
-
+    # exercise2_3(sim_result = 'logs/exercise2_3_bonus_gd/simulation.hdf5')
 
 if __name__ == "__main__":
     main()

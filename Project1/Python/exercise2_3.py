@@ -191,7 +191,7 @@ def _extract_one_cycle(times, joint_pos, f_sim):
 # Main exercise
 # ──────────────────────────────────────────────────────────────────────────────
 
-def exercise2_3():
+def exercise2_3(sim_result): # added this parameter to ba able to use this function in bonus.py without modification
     """
     Analyze animal data, compare with CPG baseline, and (bonus) find best
     imitation from the grid1_drive_pl simulations.
@@ -201,7 +201,6 @@ def exercise2_3():
     f_animal, a_animal, ipl_animal, ipl_animal_mean, animal_times, animal_joints = \
         get_animal_data(ANIMAL_DATA_PATH)
 
-    sim_result = 'logs/exercise2_1/simulation.hdf5'
     with h5py.File(sim_result, "r") as f:
         sim_times   = f['times'][:]
         joints_data = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
@@ -217,7 +216,6 @@ def exercise2_3():
         f_animal, a_animal, ipl_animal, ipl_animal_mean,
         f_robot, a_robot, ipl_robot, ipl_robot_mean, BASE_PATH
     )
-    # TO DO  Optimization
 
 if __name__ == '__main__':
-    exercise2_3()
+    exercise2_3(sim_result = 'logs/exercise2_1/simulation.hdf5')
