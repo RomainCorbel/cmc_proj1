@@ -3,6 +3,7 @@
 import os
 import h5py
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 
 try:
@@ -16,6 +17,7 @@ from cmc_controllers.metrics import (
     compute_mechanical_energy_and_cot,
     compute_mechanical_speed,
 )
+from cmc_controllers.plot_utils import plot_results_EXO2_1
 from simulate import runsim, run_multiple
 
 pylog.set_level('warning')
@@ -76,6 +78,31 @@ def load_sim_data(hdf5_path, skip_start=500):
     )
 
     return speed_forward, cot
+
+def post_processing(base_path, sim_name, controller_name, plot = True, subfolder = ""):
+    """Post processing"""
+    # Load HDF5
+    sim_result = base_path + sim_name
+    with h5py.File(sim_result, "r") as f:
+        sim_times = f['times'][:]
+        sensor_data_links = f['FARMSLISTanimats']['0']['sensors']['links']['array'][:]
+        sensor_data_joints = f['FARMSLISTanimats']['0']['sensors']['joints']['array'][:]
+
+    sensor_data_links_positions = sensor_data_links[:, :, 7:10]
+    sensor_data_links_velocities = sensor_data_links[:, :, 14:17]
+    sensor_data_joints_positions = sensor_data_joints[:, :, 0]
+    sensor_data_joints_velocities = sensor_data_joints[:, :, 1]
+    sensor_data_joints_torques = sensor_data_joints[:, :, 2]
+
+    # Load Controller
+    with open(base_path + controller_name, "rb") as f:
+        controller_data = pickle.load(f)
+
+    output_folder = base_path + "/" + subfolder + "/"
+
+    if plot:
+        plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  output_folder, controller_data)
+    
 
 def parse_all_results(base_path):
     all_files = os.listdir(base_path)
@@ -203,7 +230,7 @@ def plot_parsed_reslts(paths):
 
 def exercise3_3(**kwargs):
     """ex3.3 main"""
-    pylog.warning("TODO: 3.3 Implement neural disruptions and compare with no disruption.")
+    plot = kwargs.pop('plot', False)
 
     controller = {
         'loader': 'cmc_controllers.CPG_controller.CPGController',
@@ -225,187 +252,211 @@ def exercise3_3(**kwargs):
         },
     }
 
-    # # Run sim with base disruptions
-    # runsim(
-    #     controller=controller,
-    #     base_path=BASE_PATH,
-    #     w_ipsi=3.0,
-    #     disruption_p_sensors=DISRUPTION_P_SENSORS,
-    #     disruption_p_couplings=DISRUPTION_P_COUPLINGS,
-    #     random_seed=RANDOM_SEED,
-    #     recording='animation3_3_with_distruption.mp4',
-    #     hdf5_name='simulation_with_distruption.hdf5',
-    #     controller_name='controller_with_distruption.pkl',
-    #     runtime_n_iterations=10001,
-    #     runtime_buffer_size=10001,
-    #     fast=True,
-    #     headless=True,
-    # )
+    # Run sim with base disruptions
+    runsim(
+        controller=controller,
+        base_path=BASE_PATH,
+        w_ipsi=W_IPSI,
+        disruption_p_sensors=DISRUPTION_P_SENSORS,
+        disruption_p_couplings=DISRUPTION_P_COUPLINGS,
+        random_seed=RANDOM_SEED,
+        recording='animation3_3_with_distruption.mp4',
+        hdf5_name='simulation_with_distruption.hdf5',
+        controller_name='controller_with_distruption.pkl',
+        runtime_n_iterations=10001,
+        runtime_buffer_size=20001,
+        fast=True,
+        headless=True,
+    )
 
-    # # Rerun sim with no disruptions
-    # runsim(
-    #     controller=controller,
-    #     base_path=BASE_PATH,
-    #     w_ipsi=3.0,
-    #     disruption_p_sensors=0,
-    #     disruption_p_couplings=0,
-    #     random_seed=RANDOM_SEED,
-    #     recording='animation3_3_no_disruption.mp4',
-    #     hdf5_name='simulation_no_disruption.hdf5',
-    #     controller_name='controller_no_disruption.pkl',
-    #     runtime_n_iterations=10001,
-    #     runtime_buffer_size=10001,
-    #     fast=True,
-    #     headless=True,
-    # )
+    # Rerun sim with no disruptions
+    runsim(
+        controller=controller,
+        base_path=BASE_PATH,
+        w_ipsi=W_IPSI,
+        disruption_p_sensors=0,
+        disruption_p_couplings=0,
+        random_seed=RANDOM_SEED,
+        recording='animation3_3_no_disruption.mp4',
+        hdf5_name='simulation_no_disruption.hdf5',
+        controller_name='controller_no_disruption.pkl',
+        runtime_n_iterations=10001,
+        runtime_buffer_size=20001,
+        fast=True,
+        headless=True,
+    )
 
     disr_p_range = np.linspace(0, 0.15, 5)
-    rand_seeds = np.array([234, 2354, 5432, 2346, 14])
+    rand_seeds = np.array([234, 2354, 5432, 2346, 14, 342342, 325, 892])
     
-    # # Sensors, combined
-    # run_multiple(
-    #         max_workers=MAX_WORKERS,
-    #         controller=controller,
-    #         base_path=BASE_PATH + "/sensors_combined/",
-    #         parameter_grid={
-    #             'disruption_p_sensors': disr_p_range,
-    #             'disruption_p_couplings': [0], 
-    #             'random_seed': rand_seeds
-    #             },
-    #         common_kwargs={
-    #             'fast': True,
-    #             'headless': True,
-    #             'runtime_n_iterations': 10001,
-    #             'runtime_buffer_size': 20001,
-    #             'w_ipsi': W_IPSI
-    #         },
-    #     )
+    # Sensors, combined
+    run_multiple(
+            max_workers=MAX_WORKERS,
+            controller=controller,
+            base_path=BASE_PATH + "/sensors_combined/",
+            parameter_grid={
+                'disruption_p_sensors': disr_p_range,
+                'disruption_p_couplings': [0], 
+                'random_seed': rand_seeds
+                },
+            common_kwargs={
+                'fast': True,
+                'headless': True,
+                'runtime_n_iterations': 10001,
+                'runtime_buffer_size': 20001,
+                'w_ipsi': W_IPSI
+            },
+        )
     
-    # # Couplings, combined
-    # run_multiple(
-    #         max_workers=MAX_WORKERS,
-    #         controller=controller,
-    #         base_path=BASE_PATH + "/couplings_combined/",
-    #         parameter_grid={
-    #             'disruption_p_sensors': [0],
-    #             'disruption_p_couplings': disr_p_range, 
-    #             'random_seed': rand_seeds
-    #             },
-    #         common_kwargs={
-    #             'fast': True,
-    #             'headless': True,
-    #             'runtime_n_iterations': 10001,
-    #             'runtime_buffer_size': 20001,
-    #             'w_ipsi': W_IPSI
-    #         },
-    #     )
+    # Couplings, combined
+    run_multiple(
+            max_workers=MAX_WORKERS,
+            controller=controller,
+            base_path=BASE_PATH + "/couplings_combined/",
+            parameter_grid={
+                'disruption_p_sensors': [0],
+                'disruption_p_couplings': disr_p_range, 
+                'random_seed': rand_seeds
+                },
+            common_kwargs={
+                'fast': True,
+                'headless': True,
+                'runtime_n_iterations': 10001,
+                'runtime_buffer_size': 20001,
+                'w_ipsi': W_IPSI
+            },
+        )
     
-    # # Mixed, combined
-    # for prob in disr_p_range:
-    #     run_multiple(
-    #         max_workers=MAX_WORKERS,
-    #         controller=controller,
-    #         base_path=BASE_PATH + "/mixed_combined/",
-    #         parameter_grid={
-    #             'disruption_p_sensors': [prob],
-    #             'disruption_p_couplings': [prob], 
-    #             'random_seed': rand_seeds
-    #             },
-    #         common_kwargs={
-    #             'fast': True,
-    #             'headless': True,
-    #             'runtime_n_iterations': 10001,
-    #             'runtime_buffer_size': 20001,
-    #             'w_ipsi': W_IPSI
-    #         },
-    #     )
+    # Mixed, combined
+    for prob in disr_p_range:
+        run_multiple(
+            max_workers=MAX_WORKERS,
+            controller=controller,
+            base_path=BASE_PATH + "/mixed_combined/",
+            parameter_grid={
+                'disruption_p_sensors': [prob],
+                'disruption_p_couplings': [prob], 
+                'random_seed': rand_seeds
+                },
+            common_kwargs={
+                'fast': True,
+                'headless': True,
+                'runtime_n_iterations': 10001,
+                'runtime_buffer_size': 20001,
+                'w_ipsi': W_IPSI
+            },
+        )
 
-    # controller_decoupled = {
-    #     'loader': 'cmc_controllers.CPG_controller.CPGController',
-    #     'config': {
-    #         'drive_left': DRIVE_LEFT,
-    #         'drive_right': DRIVE_RIGHT,
-    #         'd_low': DRIVE_LOW,
-    #         'd_high': DRIVE_HIGH,
-    #         'a_rate': A_RATE,
-    #         'offset_freq': OFFSET_FREQ,
-    #         'offset_amp': OFFSET_AMP,
-    #         'G_freq': G_FREQ,
-    #         'G_amp': G_AMP,
-    #         'PL': PHASELAG,
-    #         'coupling_weights_rostral': 0,
-    #         'coupling_weights_caudal': 0,
-    #         'coupling_weights_contra': COUPLING_WEIGHTS_CONTRA,
-    #         'init_phase': INIT_PHASE,
-    #     },
-    # }
+    controller_decoupled = {
+        'loader': 'cmc_controllers.CPG_controller.CPGController',
+        'config': {
+            'drive_left': DRIVE_LEFT,
+            'drive_right': DRIVE_RIGHT,
+            'd_low': DRIVE_LOW,
+            'd_high': DRIVE_HIGH,
+            'a_rate': A_RATE,
+            'offset_freq': OFFSET_FREQ,
+            'offset_amp': OFFSET_AMP,
+            'G_freq': G_FREQ,
+            'G_amp': G_AMP,
+            'PL': PHASELAG,
+            'coupling_weights_rostral': 0,
+            'coupling_weights_caudal': 0,
+            'coupling_weights_contra': COUPLING_WEIGHTS_CONTRA,
+            'init_phase': INIT_PHASE,
+        },
+    }
 
-    # # Sensors, decoupled
-    # run_multiple(
-    #         max_workers=MAX_WORKERS,
-    #         controller=controller_decoupled,
-    #         base_path=BASE_PATH + "/sensors_decoupled/",
-    #         parameter_grid={
-    #             'disruption_p_sensors': disr_p_range,
-    #             'disruption_p_couplings': [0], 
-    #             'random_seed': rand_seeds
-    #             },
-    #         common_kwargs={
-    #             'fast': True,
-    #             'headless': True,
-    #             'runtime_n_iterations': 10001,
-    #             'runtime_buffer_size': 20001,
-    #             'w_ipsi': W_IPSI
-    #         },
-    #     )
+    # Sensors, decoupled
+    run_multiple(
+            max_workers=MAX_WORKERS,
+            controller=controller_decoupled,
+            base_path=BASE_PATH + "/sensors_decoupled/",
+            parameter_grid={
+                'disruption_p_sensors': disr_p_range,
+                'disruption_p_couplings': [0], 
+                'random_seed': rand_seeds
+                },
+            common_kwargs={
+                'fast': True,
+                'headless': True,
+                'runtime_n_iterations': 10001,
+                'runtime_buffer_size': 20001,
+                'w_ipsi': W_IPSI
+            },
+        )
     
-    # # Couplings, decoupled
-    # run_multiple(
-    #         max_workers=MAX_WORKERS,
-    #         controller=controller_decoupled,
-    #         base_path=BASE_PATH + "/couplings_decoupled/",
-    #         parameter_grid={
-    #             'disruption_p_sensors': [0],
-    #             'disruption_p_couplings': disr_p_range, 
-    #             'random_seed': rand_seeds
-    #             },
-    #         common_kwargs={
-    #             'fast': True,
-    #             'headless': True,
-    #             'runtime_n_iterations': 10001,
-    #             'runtime_buffer_size': 20001,
-    #             'w_ipsi': W_IPSI
-    #         },
-    #     )
+    # Couplings, decoupled
+    run_multiple(
+            max_workers=MAX_WORKERS,
+            controller=controller_decoupled,
+            base_path=BASE_PATH + "/couplings_decoupled/",
+            parameter_grid={
+                'disruption_p_sensors': [0],
+                'disruption_p_couplings': disr_p_range, 
+                'random_seed': rand_seeds
+                },
+            common_kwargs={
+                'fast': True,
+                'headless': True,
+                'runtime_n_iterations': 10001,
+                'runtime_buffer_size': 20001,
+                'w_ipsi': W_IPSI
+            },
+        )
     
-    # # Mixed, decoupled
-    # for prob in disr_p_range:
-    #     run_multiple(
-    #         max_workers=MAX_WORKERS,
-    #         controller=controller_decoupled,
-    #         base_path=BASE_PATH + "/mixed_decoupled/",
-    #         parameter_grid={
-    #             'disruption_p_sensors': [prob],
-    #             'disruption_p_couplings': [prob], 
-    #             'random_seed': rand_seeds
-    #             },
-    #         common_kwargs={
-    #             'fast': True,
-    #             'headless': True,
-    #             'runtime_n_iterations': 10001,
-    #             'runtime_buffer_size': 20001,
-    #             'w_ipsi': W_IPSI
-    #         },
-    #     )
+    # Mixed, decoupled
+    for prob in disr_p_range:
+        run_multiple(
+            max_workers=MAX_WORKERS,
+            controller=controller_decoupled,
+            base_path=BASE_PATH + "/mixed_decoupled/",
+            parameter_grid={
+                'disruption_p_sensors': [prob],
+                'disruption_p_couplings': [prob], 
+                'random_seed': rand_seeds
+                },
+            common_kwargs={
+                'fast': True,
+                'headless': True,
+                'runtime_n_iterations': 10001,
+                'runtime_buffer_size': 20001,
+                'w_ipsi': W_IPSI
+            },
+        )
     
     paths = ['couplings_combined', 'couplings_decoupled',
                  'mixed_combined', 'mixed_decoupled',
                  'sensors_combined', 'sensors_decoupled']
-    # for path in paths:
-    #     parse_all_results(BASE_PATH + f'/{path}/')
+    for path in paths:
+        parse_all_results(BASE_PATH + f'/{path}/')
     plot_parsed_reslts(paths)
 
-    plot = kwargs.pop('plot', False)
+    if not os.path.exists(BASE_PATH + "/" + "with_disruption"):
+        os.mkdir(BASE_PATH + "/" + "with_disruption")
+    if not os.path.exists(BASE_PATH + "/" + "no_disruption"):
+        os.mkdir(BASE_PATH + "/" + "no_disruption")
+
+    print("\nPost processing - Disruption")
+    print("-----------------------------")
+    post_processing(
+        base_path=BASE_PATH,
+        sim_name='simulation_with_distruption.hdf5',
+        controller_name='controller_with_distruption.pkl',
+        plot=plot,
+        subfolder='with_disruption'
+    )
+
+    print("\nPost processing - No disruption")
+    print("-----------------------------")
+    post_processing(
+        base_path=BASE_PATH,
+        sim_name='simulation_no_disruption.hdf5',
+        controller_name='controller_no_disruption.pkl',
+        plot=plot,
+        subfolder='no_disruption'
+    )
+
     if plot:
         plt.show()
 

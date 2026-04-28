@@ -150,31 +150,31 @@ def main(**kwargs):
 
     pylog.warning("TODO: 3.1 Compare the performance")
 
-    # runsim(
-    #     controller=controller,
-    #     base_path=BASE_PATH,
-    #     w_ipsi=w_ipsi,
-    #     recording='animation3_1_with_sf.mp4',
-    #     hdf5_name='simulation_with_sf.hdf5',
-    #     controller_name='controller_with_sf.pkl',
-    #     runtime_n_iterations=20001,
-    #     runtime_buffer_size=20001,
-    #     fast=fast,
-    #     headless=headless,
-    # )
+    runsim(
+        controller=controller,
+        base_path=BASE_PATH,
+        w_ipsi=w_ipsi,
+        recording='animation3_1_with_sf.mp4',
+        hdf5_name='simulation_with_sf.hdf5',
+        controller_name='controller_with_sf.pkl',
+        runtime_n_iterations=20001,
+        runtime_buffer_size=20001,
+        fast=fast,
+        headless=headless,
+    )
 
-    # runsim(
-    #     controller=controller,
-    #     base_path=BASE_PATH,
-    #     w_ipsi=0,
-    #     recording='animation3_1_without_sf.mp4',
-    #     hdf5_name='simulation_without_sf.hdf5',
-    #     controller_name='controller_without_sf.pkl',
-    #     runtime_n_iterations=20001,
-    #     runtime_buffer_size=20001,
-    #     fast=fast,
-    #     headless=headless,
-    # )
+    runsim(
+        controller=controller,
+        base_path=BASE_PATH,
+        w_ipsi=0,
+        recording='animation3_1_without_sf.mp4',
+        hdf5_name='simulation_without_sf.hdf5',
+        controller_name='controller_without_sf.pkl',
+        runtime_n_iterations=20001,
+        runtime_buffer_size=20001,
+        fast=fast,
+        headless=headless,
+    )
 
 def exercise3_1(**kwargs):
     """ex3.1 main"""
@@ -209,5 +209,5 @@ def exercise3_1(**kwargs):
 
 
 if __name__ == '__main__':
-    exercise3_1(plot=False, headless=True)
+    exercise3_1(plot=True, headless=True)
 

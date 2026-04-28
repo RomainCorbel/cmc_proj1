@@ -131,11 +131,11 @@ def post_processing(base_path, variable):
     data = np.array(data)
     labels = ["Forward speed [m/s]", "CoT [J/m]", "Neural frequency [Hz]", "Neural amplitude [-]"]
 
-    plt.figure(layout="constrained")
+    plt.figure(layout="constrained", figsize=(12,3))
     plt.suptitle("Impacts of sensory feedback strength")
 
     for i in range(4):
-        plt.subplot(2, 2, i+1)
+        plt.subplot(1, 4, i+1)
         plt.scatter(vals, data[:, i])
         plt.xlabel("w_ipsi")
         plt.ylabel(labels[i])
@@ -169,18 +169,18 @@ def exercise3_2(**kwargs):
             'init_phase': INIT_PHASE,
         },
     }
-    # run_multiple(
-    #     max_workers=MAX_WORKERS,
-    #     controller=controller,
-    #     base_path=BASE_PATH,
-    #     parameter_grid={'w_ipsi': w_ipsi_range},
-    #     common_kwargs={
-    #         'fast': True,
-    #         'headless': True,
-    #         'runtime_n_iterations': 5001,
-    #         'runtime_buffer_size': 20001,
-    #     },
-    # )
+    run_multiple(
+        max_workers=MAX_WORKERS,
+        controller=controller,
+        base_path=BASE_PATH,
+        parameter_grid={'w_ipsi': w_ipsi_range},
+        common_kwargs={
+            'fast': True,
+            'headless': True,
+            'runtime_n_iterations': 5001,
+            'runtime_buffer_size': 20001,
+        },
+    )
 
     plot = kwargs.pop('plot', False)
     if plot:
