@@ -439,7 +439,7 @@ def plot_results_EXO2_1(
 
     ax.set_ylabel('Joint angle [rad]')
     ax.set_xlabel('Time [s]')
-    ax.set_title('Joint Angles (Simulation)')
+    ax.set_title('Joint Angles')
     ax.legend(loc='upper left', fontsize=7, ncol=2)
 
     plt.tight_layout()
