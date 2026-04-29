@@ -103,7 +103,7 @@ def get_data(base_path, sim_name, controller_name):
     
     return [speed_forward, cot, np.mean(freq), np.mean(amp)]
 
-def post_processing(base_path, variable):
+def post_processing(base_path, variable, plot=False):
     all_files = os.listdir(base_path)
     controllers = {}
     sims = {}
@@ -141,12 +141,12 @@ def post_processing(base_path, variable):
         plt.ylabel(labels[i])
 
     plt.savefig(BASE_PATH + "wipsi_varying.png")
-    plt.show()
+    if plot:
+        plt.show()
 
 
 def exercise3_2(**kwargs):
     """ex3.2 main"""
-    pylog.warning("TODO: 3.2 Explore the effect of stretch feedback on the metrics.")
 
     w_ipsi_range = np.arange(-3, 17.5, step=0.5)
 
@@ -183,8 +183,9 @@ def exercise3_2(**kwargs):
     )
 
     plot = kwargs.pop('plot', False)
+    post_processing(BASE_PATH, "w_ipsi", plot=plot)
     if plot:
-        post_processing(BASE_PATH, "w_ipsi")
+        plt.show()
 
 
 if __name__ == '__main__':

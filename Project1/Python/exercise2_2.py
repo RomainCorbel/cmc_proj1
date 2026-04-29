@@ -109,7 +109,7 @@ def get_metrics_diff_drive(drive_left, drive_right, base_path):
 
 
 def exercise2_2(**kwargs):
-    pylog.warning("TODO: 2.2: Explore the effect of drive parameters and body phase bias")
+    #pylog.warning("TODO: 2.2: Explore the effect of drive parameters and body phase bias")
     pylog.set_level('critical')
 
     plot = kwargs.pop('plot', False)
@@ -166,25 +166,24 @@ def exercise2_2(**kwargs):
             common_kwargs={'fast': True, 'headless': True},
         )
 
-    
-   
-        
+    plot_drive_pl_heatmaps(
+        drive_range=drive_vals,
+        pl_vals=pl_vals,
+        get_metrics=lambda d, pl: get_metrics_drive_pl(d, pl, grid1_path),
+        base_path=grid1_path,
+        plot=plot
+    )
+    grid2_path = BASE_PATH + 'grid2_diff_drive/'
+    plot_diff_drive_heatmaps(
+        drive_vals=drive_vals,
+        get_metrics=lambda dl, dr: get_metrics_diff_drive(dl, dr, grid2_path),
+        base_path=grid2_path,
+        plot=plot
+    )
     if plot:
-        plot_drive_pl_heatmaps(
-            drive_range=drive_vals,
-            pl_vals=pl_vals,
-            get_metrics=lambda d, pl: get_metrics_drive_pl(d, pl, grid1_path),
-            base_path=grid1_path,
-        )
-        grid2_path = BASE_PATH + 'grid2_diff_drive/'
-        plot_diff_drive_heatmaps(
-            drive_vals=drive_vals,
-            get_metrics=lambda dl, dr: get_metrics_diff_drive(dl, dr, grid2_path),
-            base_path=grid2_path,
-        )
         plt.show()
 
 
 if __name__ == '__main__':
-    exercise2_2(plot=True,run = True)
+    exercise2_2(plot=True, run = True)
 

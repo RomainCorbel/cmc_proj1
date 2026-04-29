@@ -32,7 +32,7 @@ def exercise_all(arguments):
         exercise2_1(plot=show_plot, fast=True, headless=True)
 
     if '2_2' in arguments:
-        exercise2_2(plot=show_plot)
+        exercise2_2(plot=show_plot, run = True)
 
     if '2_3' in arguments:
         exercise2_3(plot=show_plot)

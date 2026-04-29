@@ -114,7 +114,7 @@ def exercise1_2(**kwargs):
         'amp': amp_range,
     }
     n_workers = 8
-    """
+    
     run_multiple(
         max_workers=n_workers,
         controller=base_controller,
@@ -122,16 +122,18 @@ def exercise1_2(**kwargs):
         parameter_grid=parameter_grid_example,
         common_kwargs={'fast': True, 'headless': True},
     )
-    """
 
-
+    plot = kwargs.pop('plot', False)
     plot_gridsearch_heatmaps(
         twl_range=twl_range,
         amp_range=amp_range,
         get_metrics=get_metrics,
         base_path=BASE_PATH,
+        plot = plot,
     )
-    
+    if plot:
+        plt.show()
+
 if __name__ == '__main__':
     exercise1_2(plot=True)
 

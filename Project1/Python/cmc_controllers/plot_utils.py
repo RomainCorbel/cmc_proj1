@@ -1,9 +1,11 @@
+import os
 from matplotlib.pylab import norm
 import matplotlib.pyplot as plt
 import numpy as np
 from cmc_controllers.metrics import LINKS_MASSES
 from matplotlib.colors import SymLogNorm
-def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_data_links_positions, base_path):
+
+def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_data_links_positions, base_path, plot=False):
 
     """
     Plots joint angles over a few cycles and the CoM trajectory.
@@ -34,10 +36,11 @@ def plot_results_EXO1_1(sim_times, freq, sensor_data_joints_positions, sensor_da
     ax2.set_title('CoM trajectory (2D)')
     plt.tight_layout()
     plt.savefig(base_path + 'com_trajectory.png')
-    plt.show()
     print(f'CoM displacement: {np.linalg.norm(com_xy[-1] - com_xy[0]):.4f} m')
+    if plot:
+        plt.show()
 
-def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
+def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path, plot=False):
     n_twl = len(twl_range)
     n_amp = len(amp_range)
 
@@ -92,9 +95,10 @@ def plot_gridsearch_heatmaps(twl_range, amp_range, get_metrics, base_path):
     
     plt.tight_layout()
     plt.savefig(base_path + 'gridsearch_heatmaps.png', dpi=150)
-    plt.show()
+    if plot:
+        plt.show()
 
-def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
+def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path, plot=False):
     """
     Plots heatmaps of forward speed and CoT over a grid of drive and phase lag values.
     get_metrics(drive, pl) must return (speed_forward, cot).
@@ -137,11 +141,13 @@ def plot_drive_pl_heatmaps(drive_range, pl_vals, get_metrics, base_path):
         ax.set_title(title)
 
     plt.tight_layout()
+    os.makedirs(os.path.dirname(base_path), exist_ok=True)
     plt.savefig(base_path + 'drive_pl_heatmaps.png', dpi=150)
-    plt.show()
+    if plot:
+        plt.show()
 
 
-def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path):
+def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path, plot=False):
     """
     Plots a heatmap of trajectory curvature over a grid of drive_left × drive_right values.
     get_metrics(drive_left, drive_right) must return curvature (scalar).
@@ -177,10 +183,12 @@ def plot_diff_drive_heatmaps(drive_vals, get_metrics, base_path):
     ax.set_title('Trajectory curvature (1/m)')
 
     plt.tight_layout()
+    os.makedirs(os.path.dirname(base_path), exist_ok=True)
     plt.savefig(base_path + 'diff_drive_heatmaps.png', dpi=150)
-    plt.show()
+    if plot:
+        plt.show()
 # =======
-def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, ipl_animal_mean, f_robot, a_robot, ipl_robot, ipl_robot_mean, base_path):
+def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, ipl_animal_mean, f_robot, a_robot, ipl_robot, ipl_robot_mean, base_path, plot=False):
     """
     Plots per-joint bar comparisons for Frequency, Amplitude, and Phase Lag.
     """
@@ -251,10 +259,11 @@ def plot_results_EXO2_3(f_animal, a_animal, ipl_animal, ipl_animal_mean, f_robot
     axes[2].legend()
     axes[2].set_xticklabels(couples_labels)
     axes[2].grid(axis='y', linestyle=':', alpha=0.6)
-
+    os.makedirs(os.path.dirname(base_path), exist_ok=True)
     plt.tight_layout()
     plt.savefig(base_path + 'animal_controller_comparison.png', dpi=150)
-    plt.show()
+    if plot:
+        plt.show()
 
 def plot_kinematics_comparison(animal_times, animal_joints, robot_times, robot_joints, base_path):
     """
@@ -339,7 +348,8 @@ def plot_results_EXO2_1(
     sensor_data_links_positions,
     base_path,
     controller_data,
-    t_max=5.0
+    t_max=5.0,
+    plot=False
 ):
     """
     Plot oscillator states, muscle outputs, joint angles, and CoM trajectory.
@@ -468,7 +478,7 @@ def plot_results_EXO2_1(
     # ─────────────────────────────────────────────
     # Final
     # ─────────────────────────────────────────────
-    plt.show()
-
     displacement = np.linalg.norm(com_xy[-1] - com_xy[0])
     print(f'CoM displacement: {displacement:.4f} m')
+    if plot:
+        plt.show()

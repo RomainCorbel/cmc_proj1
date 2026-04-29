@@ -191,7 +191,7 @@ def _extract_one_cycle(times, joint_pos, f_sim):
 # Main exercise
 # ──────────────────────────────────────────────────────────────────────────────
 
-def exercise2_3(sim_result): # added this parameter to ba able to use this function in bonus.py without modification
+def exercise2_3(sim_result = 'logs/exercise2_1/simulation.hdf5', plot=True): # added this parameter to be able to use this function in bonus.py without modification
     """
     Analyze animal data, compare with CPG baseline, and (bonus) find best
     imitation from the grid1_drive_pl simulations.
@@ -211,11 +211,13 @@ def exercise2_3(sim_result): # added this parameter to ba able to use this funct
     ipl_robot , ipl_robot_mean = compute_neural_phase_lags(
         sim_times, joint_pos_baseline, f_robot,
         [[i, i + 1] for i in range(N_JOINT - 1)])
-
+    
     plot_results_EXO2_3(
         f_animal, a_animal, ipl_animal, ipl_animal_mean,
-        f_robot, a_robot, ipl_robot, ipl_robot_mean, BASE_PATH
+        f_robot, a_robot, ipl_robot, ipl_robot_mean, BASE_PATH, plot=plot
     )
+    if plot:
+        plt.show()
 
 if __name__ == '__main__':
-    exercise2_3(sim_result = 'logs/exercise2_1/simulation.hdf5')
+    exercise2_3(plot=True)

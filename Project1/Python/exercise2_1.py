@@ -33,8 +33,7 @@ def post_processing(base_path,plot = True):
     with open(base_path + "controller.pkl", "rb") as f:
         controller_data = pickle.load(f)
 
-    if plot:
-        plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  base_path, controller_data)
+    plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  base_path, controller_data, plot = plot)
     return sim_times, sensor_data_joints_positions, sensor_data_links_positions
 
 def main(**kwargs):
@@ -65,11 +64,11 @@ def main(**kwargs):
 
     tic = time.time()
 
-    # runsim(
-    #     controller=controller,
-    #     base_path=BASE_PATH,
-    #     recording='exercise2_1.mp4',
-    # )
+    runsim(
+        controller=controller,
+        base_path=BASE_PATH,
+        recording='exercise2_1.mp4',
+    )
     post_processing(BASE_PATH, plot=plot)
     pylog.info('Total simulation time: %s [s]', time.time() - tic)
 
@@ -80,7 +79,10 @@ def exercise2_1(**kwargs):
             fast=kwargs.pop('fast', False),
             headless=kwargs.pop('headless', False),
             **kwargs)
-
+    plot = kwargs.pop('plot', False)
+    if plot:
+        plt.show()
+        
 if __name__ == '__main__':
     exercise2_1(plot=True)
 

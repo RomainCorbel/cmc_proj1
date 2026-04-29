@@ -44,9 +44,9 @@ def post_processing(base_path, sim_name, controller_name, plot = True, subfolder
 
     output_folder = base_path + "/" + subfolder + "/"
 
+    plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  output_folder, controller_data, plot=plot)
     if plot:
-        plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  output_folder, controller_data)
-    
+        plt.show()
     # Metrics computation - remove transient
     skip_start = 500
     sim_times = sim_times[skip_start:]
@@ -146,10 +146,6 @@ def main(**kwargs):
     fast = kwargs.pop('fast', False)
     headless = kwargs.pop('headless', False)
 
-    pylog.warning("TODO: 3.1 Simulate with and without sensory feedback")
-
-    pylog.warning("TODO: 3.1 Compare the performance")
-
     runsim(
         controller=controller,
         base_path=BASE_PATH,
@@ -206,6 +202,8 @@ def exercise3_1(**kwargs):
         plot=plot,
         subfolder="without_sf"
     )
+    if plot:
+        plt.show()  
 
 
 if __name__ == '__main__':

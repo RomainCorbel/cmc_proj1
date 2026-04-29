@@ -100,9 +100,9 @@ def post_processing(base_path, sim_name, controller_name, plot = True, subfolder
 
     output_folder = base_path + "/" + subfolder + "/"
 
+    plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  output_folder, controller_data, plot=plot)
     if plot:
-        plot_results_EXO2_1(sim_times, sensor_data_joints_positions, sensor_data_links_positions,  output_folder, controller_data)
-    
+        plt.show()
 
 def parse_all_results(base_path):
     all_files = os.listdir(base_path)

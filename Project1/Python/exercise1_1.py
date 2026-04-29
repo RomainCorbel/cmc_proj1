@@ -22,7 +22,7 @@ BASE_PATH = 'logs/exercise1_1/'
 PLOT_PATH = 'results'
 
 
-def post_processing():
+def post_processing(**kwargs):
     """Post processing"""
     # Load HDF5
     sim_result = BASE_PATH + 'simulation.hdf5'
@@ -78,7 +78,7 @@ def post_processing():
     )
     print("energy: ", energy, "cot: ", cot)
 
-    pylog.warning("TODO: 1.2: Verify the computed metrics are consistent with the expected values")
+    # pylog.warning("TODO: 1.2: Verify the computed metrics are consistent with the expected values")
     print('Estimated neural metrics:')
     print('Frequencies: ', freq, 'Mean frequency: ', np.mean(freq), '\nAmplitudes: ', amp, "Mean amplitude: ", np.mean(amp), 'phase lags (radians): ', ipls,
           '\nMean phase lags (radians): ', ipls_mean)
@@ -101,12 +101,14 @@ def post_processing():
         '\nCoT: ',
         cot)
     #Plotting results
+    plot = kwargs.pop('plot', False)
     plot_results_EXO1_1(
         sim_times=sim_times,
         freq=freq,
         sensor_data_joints_positions=sensor_data_joints_positions,
         sensor_data_links_positions=sensor_data_links_positions,
         base_path=BASE_PATH,
+        plot=plot,
         )  
 
 def main(**kwargs):
@@ -125,7 +127,7 @@ def main(**kwargs):
         recording='exercise1_1.mp4',
     )
 
-    post_processing()
+    post_processing(**kwargs)
 
 
 def exercise1_1(**kwargs):
@@ -139,6 +141,7 @@ def exercise1_1(**kwargs):
         plt.show()
 
 
+
 if __name__ == '__main__':
-    exercise1_1(plot=True)
+    exercise1_1(plot = True)
 
