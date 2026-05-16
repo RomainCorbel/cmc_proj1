@@ -1,5 +1,5 @@
 """Simulation parameters"""
-
+import numpy as np
 
 class SimulationParameters:
     """Simulation parameters"""
@@ -18,6 +18,10 @@ class SimulationParameters:
         # Feel free to add more parameters (ex: MLR drive)
         # self.drive_mlr = ...
         # ...
+
+        self.osc_left_index = np.arange(0, 16, 2)
+        self.osc_right_index = np.arange(1, 16, 2)
+        self.osc_legs_index = np.arange(16, 32)
 
         # Update object with provided keyword arguments
         # NOTE: This overrides the previous declarations

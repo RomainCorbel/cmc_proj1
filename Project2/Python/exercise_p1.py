@@ -37,6 +37,50 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
         amplitude_gradient=None,
         phase_lag_body=None,
         # Feel free to include parameters
+        body_data = {
+            'dlow': 1.0,
+            'dhigh': 5.0,
+            'cv1': 0.2,
+            'cv0': 0.3,
+            'cr1': 0.065,
+            'cr0': 0.196,
+            'vsat': 0.0,
+            'Rsat': 0.0, 
+            'amp_rate': 20.0,
+        },
+        limb_data = {
+            'dlow': 1.0,
+            'dhigh': 3.0,
+            'cv1': 0.2,
+            'cv0': 0.0,
+            'cr1': 0.131,
+            'cr0': 0.131,
+            'vsat': 0.0,
+            'Rsat': 0.0, 
+            'amp_rate': 20.0,
+        },
+        coupling_weights = {
+            'body_ips_down': 10.0,  # Towards the tail
+            'body_ips_up': 10.0,    # Away from the tail
+            'body_contra': 10.0,    # Between left/right body oscillators
+            'limb_close_body': 30,  # Between the inner limb joint and the next segment body joints
+            'limb_contra': 10.0 ,    # Between the two oscillators for one limb joint
+            'limb_ips': 10,         # Along one limb
+            'limb_close_lr': 10,    # Between the inner limb joints on the same axis
+            'limb_close_fb': 10,    # Between the inner limb joints on the same side of the body
+            'other': 0,
+        },
+        phase_biases = {
+            'body_ips_down': -2*np.pi/8,    # Towards the tail
+            'body_ips_up': 2*np.pi/8,       # Away from the tail
+            'body_contra': np.pi,           # Between left/right body oscillators
+            'limb_close_body': np.pi,       # Between the inner limb joint and the next segment body joints
+            'limb_contra': np.pi,           # Between the two oscillators for one limb joint
+            'limb_ips': 0,                  # Along one limb
+            'limb_close_lr': np.pi,         # Between the inner limb joints on the same axis
+            'limb_close_fb': np.pi,         # Between the inner limb joints on the same side of the body
+            'other': 0,
+        },
     )
     pylog.warning(
         'Modify the scalar drive to be a vector of length n_iterations. By doing so the drive will be modified to be drive[i] at each time step i.')
@@ -68,8 +112,8 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
     freqs_log[0, :] = network.robot_parameters.freqs
 
     # comment below pass to run file
-    pylog.warning('Remove the pass to run your code!!')
-    pass
+    # pylog.warning('Remove the pass to run your code!!')
+    # pass
 
     pylog.warning(
         'Implement plots here, try to plot the various logged data to check the implementation')

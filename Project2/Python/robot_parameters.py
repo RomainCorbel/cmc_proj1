@@ -32,6 +32,14 @@ class RobotParameters(dict):
         ])
         self.rates = np.zeros(self.n_oscillators)
         self.nominal_amplitudes = np.zeros(self.n_oscillators)
+
+        self.osc_left_index = parameters.osc_left_index
+        self.osc_right_index = parameters.osc_right_index
+        self.osc_legs_index = parameters.osc_legs_index
+
+        self.body_data = parameters.body_data
+        self.limb_data = parameters.limb_data
+
         # self.feedback_gains_swim = np.zeros(self.n_oscillators)
         # self.feedback_gains_walk = np.zeros(self.n_oscillators)
 
@@ -43,6 +51,12 @@ class RobotParameters(dict):
 
     def update(self, parameters):
         """Update network from parameters"""
+        # This is probably constant, but update it just in case
+        if hasattr(parameters, 'body_data'):
+            self.body_data = parameters.body_data
+        if hasattr(parameters, 'limb_data'):
+            self.limb_data = parameters.limb_data
+
         self.set_frequencies(parameters)  # f_i
         self.set_coupling_weights(parameters)  # w_ij
         self.set_phase_bias(parameters)  # psi_ij
@@ -78,21 +92,132 @@ class RobotParameters(dict):
 
     def set_frequencies(self, parameters):
         """Set frequencies"""
-        pylog.error('Coupling weights must be set')
+
+        if not hasattr(parameters, 'drive'):
+            return
+        
+        bod = self.body_data
+        leg = self.limb_data
+        d = parameters.drive
+
+        if bod['dlow'] < d and d < bod['dhigh']:
+            bod_f = bod['cv1']*d + bod['cv0']
+        else:
+            bod_f = bod['vsat']
+        if leg['dlow'] < d and d < leg['dhigh']:
+            leg_f = leg['cv1']*d + leg['cv0']
+        else:
+            leg_f = leg['vsat']
+        
+        for i in range(len(self.freqs)):
+            if i in self.osc_left_index or i in self.osc_right_index:
+                self.freqs[i] = bod_f
+            elif i in self.osc_legs_index:
+                self.freqs[i] = leg_f
+            else:
+                pylog.error(f'Unassigned frequency index {i}')
+
+    def get_pair_case(self, i, j):
+        # Two body joints
+        if (i < min(self.osc_legs_index)) and (j < min(self.osc_legs_index)):
+            if i == j+2:
+                return 'body_ips_up'
+            elif j == i+2:
+                return 'body_ips_down'
+            elif abs(i-j) == 1 and min(i, j) in self.osc_left_index:
+                return 'body_contra'
+            else:
+                return 'other'
+        # Two leg joints
+        elif (i >= min(self.osc_legs_index)) and (j >= min(self.osc_legs_index)):
+            if abs(i-j) == 1 and min(i,j)%2 == 0:
+                return 'limb_contra'
+            elif abs(i-j) == 2 and min(i,j)%4 in [0,1]:
+                return 'limb_ips'
+            elif abs(i-j) == 4 and min(i,j)%4 in [0,1] and min(i,j) not in [20, 21]:
+                return 'limb_close_lr'
+            elif abs(i-j) == 8 and min(i,j)%4 in [0,1]:
+                return 'limb_close_fb'
+            else:
+                return 'other'
+        # One leg, one body
+        else:
+            leg = max(i,j)
+            body = min(i,j)
+
+            match_sets = {
+                16: [3,5,7,9],
+                17: [2,4,6,8],
+                20: [2,4,6,8],
+                21: [3,5,7,9],
+                24: [11,13,15],
+                25: [10,12,14],
+                28: [10,12,14],
+                29: [11,13,15],
+            }
+            if leg in match_sets.keys():
+                if body in match_sets[leg]:
+                    return 'limb_close_body'
+                else:
+                    return 'other'
+            else:
+                return 'other'
 
     def set_coupling_weights(self, parameters):
         """Set coupling weights"""
-        pylog.error('Coupling weights must be set')
+        # If the weights aren't being updated, don't try to update them
+        if not hasattr(parameters, 'coupling_weights'):
+            return
+        
+        for i in range(len(self.coupling_weights)):
+            for j in range(len(self.coupling_weights[0])):
+                case = self.get_pair_case(i, j)
+                self.coupling_weights[i,j] = parameters.coupling_weights[case]
 
     def set_phase_bias(self, parameters):
         """Set phase bias"""
-        pylog.error('Phase bias must be set')
+        # If the biases aren't being updated, don't try to update them
+        if not hasattr(parameters, 'phase_biases'):
+            return
+        
+        for i in range(len(self.coupling_weights)):
+            for j in range(len(self.coupling_weights[0])):
+                case = self.get_pair_case(i, j)
+                self.coupling_weights[i,j] = parameters.phase_biases[case]
 
     def set_amplitudes_rate(self, parameters):
         """Set amplitude rates"""
-        pylog.error('Convergence rates must be set')
+        body_rate = self.body_data['amp_rate']
+        leg_rate = self.limb_data['amp_rate']
+        
+        for i in range(len(self.rates)):
+            if i in self.osc_left_index or i in self.osc_right_index:
+                self.rates[i] = body_rate
+            elif i in self.osc_legs_index:
+                self.rates[i] = leg_rate
+            else:
+                pylog.error(f'Unassigned amplitude index {i}')
 
     def set_nominal_amplitudes(self, parameters):
         """Set nominal amplitudes"""
-        pylog.error('Nominal amplitudes must be set')
+        bod = self.body_data
+        leg = self.limb_data
+        d = parameters.drive
+        
+        if bod['dlow'] < d and d < bod['dhigh']:
+            bod_R = bod['cr1']*d + bod['cr0']
+        else:
+            bod_R = bod['Rsat']
+        if leg['dlow'] < d and d < leg['dhigh']:
+            leg_R = leg['cr1']*d + leg['cr0']
+        else:
+            leg_R = leg['Rsat']
+
+        for i in range(len(self.nominal_amplitudes)):
+            if i in self.osc_left_index or i in self.osc_right_index:
+                self.nominal_amplitudes[i] = bod_R
+            elif i in self.osc_legs_index:
+                self.nominal_amplitudes[i] = leg_R
+            else:
+                pylog.error(f'Unassigned amplitude index {i}')
 
