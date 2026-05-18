@@ -5,8 +5,7 @@ import shutil
 import numpy as np
 from salamandra_simulation.simulation import simulation
 from simulation_parameters import SimulationParameters
-
-_BODY_DATA = {
+body_data = {
     'dlow': 1.0,
     'dhigh': 5.0,
     'cv1': 0.2,
@@ -17,7 +16,7 @@ _BODY_DATA = {
     'Rsat': 0.0, 
     'amp_rate': 20.0,
 }
-_LIMB_DATA = {
+limb_data = {
     'dlow': 1.0,
     'dhigh': 3.0,
     'cv1': 0.2,
@@ -28,7 +27,7 @@ _LIMB_DATA = {
     'Rsat': 0.0, 
     'amp_rate': 20.0,
 }
-_COUPLING_WEIGHTS = {
+coupling_weights = {
     'body_ips_down': 10.0,  # Towards the tail
     'body_ips_up': 10.0,    # Away from the tail
     'body_contra': 10.0,    # Between left/right body oscillators
@@ -39,7 +38,7 @@ _COUPLING_WEIGHTS = {
     'limb_close_fb': 10,    # Between the inner limb joints on the same side of the body
     'other': 0,
 }
-_PHASE_BIASES = {
+phase_biases = {
     'body_ips_down': -2*np.pi/8,    # Towards the tail
     'body_ips_up': 2*np.pi/8,       # Away from the tail
     'body_contra': np.pi,           # Between left/right body oscillators
@@ -50,20 +49,19 @@ _PHASE_BIASES = {
     'limb_close_fb': np.pi,         # Between the inner limb joints on the same side of the body
     'other': 0,
 }
-
 def exercise_walk(timestep):
     "[Project 1] Q2 Walking with fixed drive"
     # Use exercise_example.py for reference
     sim_parameters = SimulationParameters(
         duration=15,
         timestep=timestep,
-        spawn_position=[0, 0, 0.1],
+        spawn_position=[0, 0, 0],
         spawn_orientation=[0, 0, np.pi/2],
         drive=2.0,
-        body_data=_BODY_DATA,
-        limb_data=_LIMB_DATA,
-        coupling_weights=_COUPLING_WEIGHTS,
-        phase_biases=_PHASE_BIASES,
+        body_data=body_data,
+        limb_data=limb_data,
+        coupling_weights=coupling_weights,
+        phase_biases=phase_biases,
     )
     log_path = 'logs/exercise2_walk/sim_0'
     if os.path.exists(log_path):
@@ -95,10 +93,10 @@ def exercise_ramp_swim(timestep):
         drive_ramp_start=0.0,
         drive_ramp_end=6.0,
         drive_ramp_duration=40.0,
-        body_data=_BODY_DATA,
-        limb_data=_LIMB_DATA,
-        coupling_weights=_COUPLING_WEIGHTS,
-        phase_biases=_PHASE_BIASES,
+        body_data=body_data,
+        limb_data=limb_data,
+        coupling_weights=coupling_weights,
+        phase_biases=phase_biases,
     )
     log_path = 'logs/exercise2_ramp_swim/sim_0'
     if os.path.exists(log_path):
@@ -112,9 +110,8 @@ def exercise_ramp_swim(timestep):
         output=log_path,
         record=True,
         record_path='logs/exercise2_ramp_swim/video_ramp_swim.mp4',
-        record_aziomuth=90,
-        record_elevation=-5,
-        record_distance=3,
+        record_elevation=-10,
+        record_distance=2,
     )
     return
 
@@ -125,16 +122,16 @@ def exercise_ramp_walk(timestep):
     sim_parameters = SimulationParameters(
         duration=40,
         timestep=timestep,
-        spawn_position=[0, 0, 0.1],
+        spawn_position=[0, 0, 0],
         spawn_orientation=[0, 0, np.pi/2],
         drive=0.0,
         drive_ramp_start=0.0,
         drive_ramp_end=6.0,
         drive_ramp_duration=40.0,
-        body_data=_BODY_DATA,
-        limb_data=_LIMB_DATA,
-        coupling_weights=_COUPLING_WEIGHTS,
-        phase_biases=_PHASE_BIASES,
+        body_data=body_data,
+        limb_data=limb_data,
+        coupling_weights=coupling_weights,
+        phase_biases=phase_biases,
     )
     log_path = 'logs/exercise2_ramp_walk/sim_0'
     if os.path.exists(log_path):
@@ -148,9 +145,8 @@ def exercise_ramp_walk(timestep):
         output=log_path,
         record=True,
         record_path='logs/exercise2_ramp_walk/video_ramp_walk.mp4',
-        record_aziomuth=90,
-        record_elevation=-5,
-        record_distance=3,
+        record_elevation=-10,
+        record_distance=2,
     )
     return
 
