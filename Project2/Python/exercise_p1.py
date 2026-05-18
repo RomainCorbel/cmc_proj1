@@ -32,8 +32,9 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
     # Simulation setup
     times = np.arange(0, duration, timestep)
     n_iterations = len(times)
+    initial_drive = drive[0] if hasattr(drive, '__len__') else drive
     sim_parameters = SimulationParameters(
-        drive=drive,
+        drive=initial_drive,
         amplitude_gradient=None,
         phase_lag_body=None,
         # Feel free to include parameters
@@ -121,9 +122,9 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
     tic = time.time()
     for i, time0 in enumerate(times[1:]):
         if update:
+            current_drive = drive[i+1] if hasattr(drive, '__len__') else drive
             network.robot_parameters.update(
-                SimulationParameters(
-                )
+                SimulationParameters(drive=current_drive)
             )
         network.step(i, time0, timestep)
         phases_log[i+1, :] = network.state.phases(iteration=i+1)

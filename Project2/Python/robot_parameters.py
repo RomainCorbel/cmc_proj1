@@ -183,7 +183,7 @@ class RobotParameters(dict):
         for i in range(len(self.coupling_weights)):
             for j in range(len(self.coupling_weights[0])):
                 case = self.get_pair_case(i, j)
-                self.coupling_weights[i,j] = parameters.phase_biases[case]
+                self.phase_bias[i,j] = parameters.phase_biases[case]
 
     def set_amplitudes_rate(self, parameters):
         """Set amplitude rates"""
@@ -200,6 +200,8 @@ class RobotParameters(dict):
 
     def set_nominal_amplitudes(self, parameters):
         """Set nominal amplitudes"""
+        if not hasattr(parameters, 'drive'):
+            return
         bod = self.body_data
         leg = self.limb_data
         d = parameters.drive
