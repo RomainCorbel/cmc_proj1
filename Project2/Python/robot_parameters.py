@@ -101,11 +101,11 @@ class RobotParameters(dict):
         d = parameters.drive
 
         if bod['dlow'] < d and d < bod['dhigh']:
-            bod_f = bod['cv1']*d + bod['cv0']
+            bod_f = 2*np.pi * (bod['cv1']*d + bod['cv0'])
         else:
             bod_f = bod['vsat']
         if leg['dlow'] < d and d < leg['dhigh']:
-            leg_f = leg['cv1']*d + leg['cv0']
+            leg_f = 2*np.pi * (leg['cv1']*d + leg['cv0'])
         else:
             leg_f = leg['vsat']
         

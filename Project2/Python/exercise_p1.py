@@ -138,8 +138,44 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
         toc - tic
     ))
 
-    # Implement plots of network results
-    pylog.warning('Implement plots')
+    # Motor outputs: x_i = r_i * (1 + cos(phi_i))
+    outputs = amplitudes_log * (1 + np.cos(phases_log))
+
+    # Instantaneous frequency via unwrapped phase derivative
+    phases_unwrapped = np.unwrap(phases_log, axis=0)
+    inst_freq = np.diff(phases_unwrapped, axis=0) / (2 * np.pi * timestep)
+
+    # Drive trajectory for plotting
+    drive_plot = drive if hasattr(drive, '__len__') else np.full(n_iterations, drive)
+
+    label = f'ex1_{"ramp" if update else f"drive_{initial_drive}"}'
+    fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True, num=label)
+    fig.suptitle(f'CPG Network Dynamics (duration={duration}s, drive ramp={update})')
+
+    # A: body left oscillator activations (waterfall, head at top)
+    offset = 1.2
+    for k, idx in enumerate(osc_left):
+        axes[0].plot(times, outputs[:, idx] + k * offset, color='steelblue', linewidth=0.8)
+    axes[0].set_ylabel('Body (L)\nactivation')
+    axes[0].set_yticks([])
+
+    # B: limb activations — first oscillator of each limb
+    for k, idx in enumerate(osc_legs[::4]):
+        axes[1].plot(times, outputs[:, idx] + k * offset, color='darkorange', linewidth=0.8)
+    axes[1].set_ylabel('Limb\nactivation')
+    axes[1].set_yticks([])
+
+    # C: mean instantaneous frequency of left body oscillators
+    axes[2].plot(times[1:], np.mean(inst_freq[:, osc_left], axis=1), color='black')
+    axes[2].set_ylabel('Freq [Hz]')
+    axes[2].set_ylim([0, 2])
+
+    # D: drive signal
+    axes[3].plot(times, drive_plot, color='red')
+    axes[3].set_ylabel('Drive d')
+    axes[3].set_xlabel('Time [s]')
+
+    plt.tight_layout()
 
     return
 
@@ -147,7 +183,13 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
 def exercise_1a_networks(plot, timestep=1e-2):
     """[Project 1] Exercise 1: """
 
-    run_network(duration=5)
+    # Exercise 1A: fixed drive in walking regime to verify network
+    run_network(duration=10, drive=2.0, timestep=timestep)
+
+    # Exercise 1B: linearly increasing drive 0 -> 6 over 20s (Ijspeert 2007 Fig. 2)
+    duration_ramp = 20
+    drive_ramp = np.linspace(0, 6, int(duration_ramp / timestep))
+    run_network(duration=duration_ramp, update=True, drive=drive_ramp, timestep=timestep)
 
     # Show plots
     if True:
