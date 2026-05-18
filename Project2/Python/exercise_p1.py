@@ -150,7 +150,8 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
 
     label = f'ex1_{"ramp" if update else f"drive_{initial_drive}"}'
     fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True, num=label)
-    fig.suptitle(f'CPG Network Dynamics (duration={duration}s, drive ramp={update})')
+    part = 'Part B' if update else 'Part A'
+    fig.suptitle(f'{part} - CPG Network Dynamics (duration={duration}s)')
 
     # A: body left oscillator activations (waterfall, head at top)
     offset = 1.2
@@ -177,6 +178,78 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
 
     plt.tight_layout()
 
+    # Oscillator properties figure (Ijspeert Fig. 5 equivalent) — Part B only
+    if update:
+        bod = network.robot_parameters.body_data
+        leg = network.robot_parameters.limb_data
+
+        # Analytical curves: ν(d) and R(d)
+        d_vals = np.linspace(0, 6, 300)
+        body_freq_d = np.where(
+            (d_vals > bod['dlow']) & (d_vals < bod['dhigh']),
+            bod['cv1']*d_vals + bod['cv0'], 0.0)
+        limb_freq_d = np.where(
+            (d_vals > leg['dlow']) & (d_vals < leg['dhigh']),
+            leg['cv1']*d_vals + leg['cv0'], 0.0)
+        body_amp_d = np.where(
+            (d_vals > bod['dlow']) & (d_vals < bod['dhigh']),
+            bod['cr1']*d_vals + bod['cr0'], 0.0)
+        limb_amp_d = np.where(
+            (d_vals > leg['dlow']) & (d_vals < leg['dhigh']),
+            leg['cr1']*d_vals + leg['cr0'], 0.0)
+
+        # Time-series: one body and one limb oscillator
+        b_idx, l_idx = osc_left[0], osc_legs[0]
+        body_freq_t = freqs_log[:, b_idx] / (2*np.pi)
+        limb_freq_t = freqs_log[:, l_idx] / (2*np.pi)
+        body_amp_t = amplitudes_log[:, b_idx]
+        limb_amp_t = amplitudes_log[:, l_idx]
+        body_out_t = outputs[:, b_idx]
+        limb_out_t = outputs[:, l_idx]
+
+        fig2 = plt.figure(figsize=(18, 8), num='ex1_ramp_osc_properties')
+        fig2.suptitle('Part B - Oscillator Properties')
+        gs = fig2.add_gridspec(4, 2, hspace=0.55, wspace=0.35)
+        ax_A = fig2.add_subplot(gs[0:2, 0])
+        ax_B = fig2.add_subplot(gs[2:4, 0])
+        ax_C = fig2.add_subplot(gs[0, 1])
+        ax_D = fig2.add_subplot(gs[1, 1])
+        ax_E = fig2.add_subplot(gs[2, 1])
+        ax_F = fig2.add_subplot(gs[3, 1])
+
+        ax_A.plot(d_vals, body_freq_d, 'k-', label='Body')
+        ax_A.plot(d_vals, limb_freq_d, 'k--', label='Limb')
+        ax_A.set_ylabel('ν [Hz]')
+        ax_A.set_xlabel('drive')
+        ax_A.legend(fontsize=8)
+
+        ax_B.plot(d_vals, body_amp_d, 'k-', label='Body')
+        ax_B.plot(d_vals, limb_amp_d, 'k--', label='Limb')
+        ax_B.set_ylabel('R')
+        ax_B.set_xlabel('drive')
+        ax_B.legend(fontsize=8)
+
+        c_offset = max(limb_out_t.max() - limb_out_t.min(), 0.5)
+        ax_C.plot(times, body_out_t + c_offset, 'k-', linewidth=0.5, label='Body')
+        ax_C.plot(times, limb_out_t, 'k--', linewidth=0.5, label='Limb')
+        ax_C.set_ylabel('x')
+        ax_C.set_yticks([])
+        ax_C.legend(fontsize=7)
+
+        ax_D.plot(times, body_freq_t, 'k-')
+        ax_D.plot(times, limb_freq_t, 'k--')
+        ax_D.set_ylabel('Freq [Hz]')
+
+        ax_E.plot(times, body_amp_t, 'k-')
+        ax_E.plot(times, limb_amp_t, 'k--')
+        ax_E.set_ylabel('r')
+
+        ax_F.plot(times, drive_plot, 'k-')
+        ax_F.axhline(y=bod['dhigh'], color='k', linestyle=':', linewidth=0.8)
+        ax_F.axhline(y=leg['dhigh'], color='k', linestyle=':', linewidth=0.8)
+        ax_F.set_ylabel('d (drive)')
+        ax_F.set_xlabel('Time [s]')
+
     return
 
 
@@ -201,5 +274,5 @@ def exercise_1a_networks(plot, timestep=1e-2):
 
 
 if __name__ == '__main__':
-    exercise_1a_networks(plot=not save_plots())
+    exercise_1a_networks(plot= not save_plots())
 

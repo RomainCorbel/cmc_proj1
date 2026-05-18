@@ -39,6 +39,7 @@ class RobotParameters(dict):
 
         self.body_data = parameters.body_data
         self.limb_data = parameters.limb_data
+        self.sim_parameters = parameters
 
         # self.feedback_gains_swim = np.zeros(self.n_oscillators)
         # self.feedback_gains_walk = np.zeros(self.n_oscillators)
@@ -89,6 +90,13 @@ class RobotParameters(dict):
         # self.set_nominal_amplitudes(self.sim_parameters)  # R_i
         # print("GPGS: {}".format(gps[4, 0]))
         # print("drive: {}".format(self.sim_parameters.drive))
+        if hasattr(self.sim_parameters, 'drive_ramp_end'):
+            t_max = self.sim_parameters.drive_ramp_duration
+            d_start = self.sim_parameters.drive_ramp_start
+            d_end = self.sim_parameters.drive_ramp_end
+            self.sim_parameters.drive = d_start + (d_end - d_start) * min(time / t_max, 1.0)
+            self.set_frequencies(self.sim_parameters)
+            self.set_nominal_amplitudes(self.sim_parameters)
 
     def set_frequencies(self, parameters):
         """Set frequencies"""
