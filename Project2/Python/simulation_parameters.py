@@ -1,5 +1,6 @@
 """Simulation parameters"""
 import numpy as np
+from robot_parameters import body_data, limb_data, coupling_weights, phase_biases
 
 class SimulationParameters:
     """Simulation parameters"""
@@ -15,6 +16,10 @@ class SimulationParameters:
         # self.position_limb_gain = 1  # default do not change
         self.phase_lag_body = None
         self.amplitude_gradient = None
+        self.body_data = body_data
+        self.limb_data = limb_data
+        self.coupling_weights = coupling_weights
+        self.phase_biases = phase_biases
         # Feel free to add more parameters (ex: MLR drive)
         # self.drive_mlr = ...
         # ...
