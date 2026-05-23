@@ -17,7 +17,7 @@ body_data = {
 limb_data = {
     'dlow': 1.0,
     'dhigh': 3.0,
-    'cv1': 0.4,
+    'cv1': 0.2,
     'cv0': 0.0,
     'cr1': 0.131,
     'cr0': 0.131,
@@ -37,17 +37,16 @@ coupling_weights = {
     'other': 0,
 }
 phase_biases = {
-    'body_ips_down': 2*np.pi/8,  # Towards the tail
-    'body_ips_up': 2*np.pi/8,    # Away from the tail
-    'body_contra': np.pi,        # Between left/right body oscillators
-    'limb_close_body': np.pi,    # Between the inner limb joint and the next segment body joints
-    'limb_contra': -np.pi,        # Between the two oscillators for one limb joint ggg
-    'limb_ips': 0,               # Along one limb
-    'limb_close_lr': np.pi,      # Between the inner limb joints on the same axis ggg
-    'limb_close_fb': -np.pi,      # Between the inner limb joints on the same side of the body  gggg
-    'other': 0,
+    'body_ips_down':  -2*np.pi/8,   # inversé
+    'body_ips_up':   2*np.pi/8,   # inversé
+    'body_contra':    np.pi,
+    'limb_close_body': np.pi,
+    'limb_contra':    np.pi,
+    'limb_ips':       np.pi ,
+    'limb_close_lr':  np.pi,
+    'limb_close_fb':  np.pi,       # changé de -π à +π
+    'other':          0,
 }
-
 
 class RobotParameters(dict):
     """Robot parameters"""

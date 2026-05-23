@@ -71,17 +71,18 @@ def run_network(duration, update=False, drive=0, timestep=1e-2):
             'limb_close_fb': 10,    # Between the inner limb joints on the same side of the body
             'other': 0,
         },
+        
         phase_biases = {
-            'body_ips_down': -2*np.pi/8,    # Towards the tail
-            'body_ips_up': 2*np.pi/8,       # Away from the tail
-            'body_contra': np.pi,           # Between left/right body oscillators
-            'limb_close_body': np.pi,       # Between the inner limb joint and the next segment body joints
-            'limb_contra': np.pi,           # Between the two oscillators for one limb joint
-            'limb_ips': 0,                  # Along one limb
-            'limb_close_lr': np.pi,         # Between the inner limb joints on the same axis
-            'limb_close_fb': np.pi,         # Between the inner limb joints on the same side of the body
-            'other': 0,
-        },
+            'body_ips_down':  -2*np.pi/8,   # inversé
+            'body_ips_up':   2*np.pi/8,   # inversé
+            'body_contra':    np.pi,
+            'limb_close_body': np.pi,
+            'limb_contra':    np.pi,
+            'limb_ips':       np.pi ,
+            'limb_close_lr':  np.pi,
+            'limb_close_fb':  np.pi,       # changé de -π à +π
+            'other':          0,
+        }
     )
     pylog.warning(
         'Modify the scalar drive to be a vector of length n_iterations. By doing so the drive will be modified to be drive[i] at each time step i.')
