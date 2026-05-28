@@ -27,7 +27,7 @@ BODY = {
     'cv1':   0.2,   # frequency slope  [Hz / drive unit]
     'cv0':   0.3,   # frequency offset [Hz]: nu=0.5 Hz at d=1, nu=1.3 Hz at d=5
     'cr1':   0.065, # amplitude slope  [rad / drive unit]
-    'cr0':   0.196, # amplitude offset [rad]: R=0.261 at d=1, R=0.521 at d=5
+    'cr0':   0.196*4, # amplitude offset [rad]: R=0.261 at d=1, R=0.521 at d=5
     'rate':  20.0,  # convergence rate a_i [1/s]: controls r_i -> R_i speed
 }
 
@@ -40,10 +40,9 @@ LIMB = {
     'cv1':   0.2,   # same slope as body but lower range -> lower walk frequencies
     'cv0':   0.0,   # nu=0.2 Hz at d=1, nu=0.6 Hz at d=3
     'cr1':   0.131,
-    'cr0':   0.131, # R=0.262 at d=1, R=0.524 at d=3
+    'cr0':   0.131*5, # R=0.262 at d=1, R=0.524 at d=3
     'rate':  20.0,
-}
-
+}# " pi/2"
 
 def _sat_freq(d, p):
     """Piece-wise linear frequency saturation (returns nu in Hz)."""
@@ -81,14 +80,14 @@ def _sat_amp(d, p):
 # =============================================================================
 
 # Table I values (paper uses 1 osc/joint; here each joint = anti-phase pair)
-W_BODY_IPSI   = 20.0   # w_{i,i+1}=20, i∈{1..7}  (body chain)
-W_BODY_CONTRA = 20.0   # within-pair anti-phase (not in Table I, needed for architecture)
-W_LIMB_IPSI   = 20.0   # w_{i,i+2}=20, i∈{9,10}  (FL-HL, FR-HR ipsilateral)
-W_LIMB_CONTRA = 10.0   # w_{i,i+1}=10, i∈{9,11}  (FL-FR, HL-HR contralateral)
-W_LIMB2BODY   = 10.0   # w_{limb,body}=10 walking / 0 swimming  (Table I)
-W_BODY2LIMB   = 10.0   # symmetric return coupling
-W_LIMB_PAIR   = 20.0   # within limb-joint pair anti-phase
-W_HIP_KNEE    = 10.0   # hip→knee within same leg
+W_BODY_IPSI   = 10.0   # w_{i,i+1}=20, i∈{1..7}  (body chain)
+W_BODY_CONTRA = 10.0   # within-pair anti-phase (not in Table I, needed for architecture)
+W_LIMB_IPSI   = 10.0   # w_{i,i+2}=20, i∈{9,10}  (FL-HL, FR-HR ipsilateral)
+W_LIMB_CONTRA = 50.0   # w_{i,i+1}=10, i∈{9,11}  (FL-FR, HL-HR contralateral)
+W_LIMB2BODY   = 50.0   # w_{limb,body}=10 walking / 0 swimming  (Table I)
+W_BODY2LIMB   = 0   # symmetric return coupling
+W_LIMB_PAIR   = 10.0   # within limb-joint pair anti-phase
+W_HIP_KNEE    = 50.0   # hip→knee within same leg
 
 
 class RobotParameters(dict):
@@ -306,24 +305,53 @@ class RobotParameters(dict):
         # --- 3 & 4. Limb <-> body at girdle segments -------------------------
         # Forelimb girdle: body segments 0-1 -> oscillators 0,1,2,3
         # Hindlimb girdle: body segments 4-5 -> oscillators 8,9,10,11
-        fore_body = [0, 1, 2, 3]
-        hind_body = [8, 9, 10, 11]
+        # fore_body = [0, 1, 2, 3]
+        # hind_body = [8, 9, 10, 11]
 
-        fl_h = self._hip_osc(0)  # (16, 17) FL hip
-        fr_h = self._hip_osc(1)  # (20, 21) FR hip
-        hl_h = self._hip_osc(2)  # (24, 25) HL hip
-        hr_h = self._hip_osc(3)  # (28, 29) HR hip
+        # fl_h = self._hip_osc(0)  # (16, 17) FL hip
+        # fr_h = self._hip_osc(1)  # (20, 21) FR hip
+        # hl_h = self._hip_osc(2)  # (24, 25) HL hip
+        # hr_h = self._hip_osc(3)  # (28, 29) HR hip
 
-        for limb_osc in list(fl_h) + list(fr_h):
-            for body_osc in fore_body:
-                w[limb_osc, body_osc] = W_LIMB2BODY  # strong limb -> body
-                w[body_osc, limb_osc] = W_BODY2LIMB  # weak  body -> limb
+        # for limb_osc in list(fl_h) + list(fr_h):
+        #     for body_osc in fore_body:
+        #         w[limb_osc, body_osc] = W_LIMB2BODY  # strong limb -> body
+        #         w[body_osc, limb_osc] = W_BODY2LIMB  # weak  body -> limb
 
-        for limb_osc in list(hl_h) + list(hr_h):
-            for body_osc in hind_body:
+        # for limb_osc in list(hl_h) + list(hr_h):
+        #     for body_osc in hind_body:
+        #         w[limb_osc, body_osc] = W_LIMB2BODY
+        #         w[body_osc, limb_osc] = W_BODY2LIMB
+        
+        fl_h = self._hip_osc(0)  # (16, 17)
+        fr_h = self._hip_osc(1)  # (20, 21)
+        hl_h = self._hip_osc(2)  # (24, 25)
+        hr_h = self._hip_osc(3)  # (28, 29)
+
+        fore_body_left = [0, 2, 4, 6]
+        fore_body_right = [1, 3, 5, 7]
+        hind_body_left = [8, 10, 12, 14]
+        hind_body_right = [9, 11, 13, 15]
+
+        for limb_osc in list(fl_h):
+            for body_osc in fore_body_left:
                 w[limb_osc, body_osc] = W_LIMB2BODY
                 w[body_osc, limb_osc] = W_BODY2LIMB
 
+        for limb_osc in list(fr_h):
+            for body_osc in fore_body_right:
+                w[limb_osc, body_osc] = W_LIMB2BODY
+                w[body_osc, limb_osc] = W_BODY2LIMB
+ 
+        for limb_osc in list(hr_h):
+            for body_osc in hind_body_right:
+                w[limb_osc, body_osc] = W_LIMB2BODY
+                w[body_osc, limb_osc] = W_BODY2LIMB
+
+        for limb_osc in list(hl_h):
+            for body_osc in hind_body_left:
+                w[limb_osc, body_osc] = W_LIMB2BODY
+                w[body_osc, limb_osc] = W_BODY2LIMB
         # --- 5. Within-joint pair (flexor-extensor anti-phase) ---------------
         for j in range(self.n_legs_joints):
             even = self.n_oscillators_body + 2 * j
@@ -353,7 +381,8 @@ class RobotParameters(dict):
             w[kne_f, hip_f] = W_HIP_KNEE
             w[hip_e, kne_e] = W_HIP_KNEE  # hip extensor -> knee extensor
             w[kne_e, hip_e] = W_HIP_KNEE
-
+        np.set_printoptions(threshold=100000, linewidth=1000)
+        print(w)
     # =========================================================================
     # set_phase_bias
     # =========================================================================
@@ -458,21 +487,57 @@ class RobotParameters(dict):
         _set_pair(hl_h, hr_h, np.pi)   # HL-HR anti-phase  (φ_{11,12}=π)
 
         # --- Limb-body at girdle: Table I φ_{i,j}=0  (in-phase) -------------
-        fore_body = [0, 1, 2, 3]
-        hind_body = [8, 9, 10, 11]
+        fore_body_left = [0, 2, 4, 6]
+        fore_body_right = [1, 3, 5, 7]
+        hind_body_left = [8, 10, 12, 14]
+        hind_body_right = [9, 11, 13, 15]
 
-        for limb_osc in list(fl_h) + list(fr_h):
-            for body_osc in fore_body:
-                phi[limb_osc, body_osc] = 0.0
-                phi[body_osc, limb_osc] = 0.0
+        for i,limb_osc in enumerate(fl_h):
+            for body_osc in fore_body_left:
+                phi[limb_osc, body_osc] = 0 if i % 2 == 0 else np.pi
+                phi[body_osc, limb_osc] = -0 if i % 2 == 0 else -np.pi
 
-        for limb_osc in list(hl_h) + list(hr_h):
-            for body_osc in hind_body:
-                phi[limb_osc, body_osc] = 0.0
-                phi[body_osc, limb_osc] = 0.0
+        for i,limb_osc in enumerate(fr_h):
+            for body_osc in fore_body_right:
+                phi[limb_osc, body_osc] = 0 if i % 2 == 0 else np.pi
+                phi[body_osc, limb_osc] = -0 if i % 2 == 0 else -np.pi
+ 
+        for i,limb_osc in enumerate(hr_h):
+            for body_osc in hind_body_right:
+                phi[limb_osc, body_osc] = 0 if i % 2 == 0 else np.pi
+                phi[body_osc, limb_osc] = -0 if i % 2 == 0 else -np.pi
 
-        # Hip-knee within same leg: in-phase (phi=0, already default)
+        for i,limb_osc in enumerate(hl_h):
+            for body_osc in hind_body_left:
+                phi[limb_osc, body_osc] = 0 if i % 2 == 0 else np.pi
+                phi[body_osc, limb_osc] = -0 if i % 2 == 0 else -np.pi
+ 
+        # --- Hip-knee within same leg: in-phase (phi=0, already default) 
+        # phi[16, 18] = -np.pi/2  # FL hip flexor -> FL knee flexor
+        # phi[17, 19] = -np.pi/2 
 
+        # phi[24, 26] = -np.pi/2  # FL hip flexor -> FL knee flexor
+        # phi[25, 27] = -np.pi/2 
+
+        # phi[28, 30] = -np.pi/2  # FL hip flexor -> FL knee flexor
+        # phi[29, 31] = -np.pi/2 
+
+        # phi[20, 22] = -np.pi/2  # FL hip flexor -> FL knee flexor
+        # phi[21, 23] = -np.pi/2 
+
+        PHASE_HIP_KNEE = -np.pi/2  # in-phase coupling; can be tuned for gait naturalness
+        for leg in range(self.N_LEGS):
+            hip_f, hip_e = self._hip_osc(leg)
+            kne_f, kne_e = self._knee_osc(leg)
+            phi[hip_f, kne_f] = PHASE_HIP_KNEE  # hip flexor  -> knee flexor
+            phi[kne_f, hip_f] = -PHASE_HIP_KNEE
+            phi[hip_e, kne_e] = PHASE_HIP_KNEE  # hip extensor -> knee extensor
+            phi[kne_e, hip_e] = -PHASE_HIP_KNEE
+        np.set_printoptions(threshold=100000, linewidth=1000)
+        print(phi)
+        # Open Ipython to interact with the code (uv pip install ipython)
+        # This can be useful for exploring the contents of data.sensors for example
+        # from IPython import embed; embed()
     # =========================================================================
     # set_amplitudes_rate
     # =========================================================================
@@ -527,3 +592,4 @@ class RobotParameters(dict):
             self.nominal_amplitudes[right[i]] = R_i
 
         self.nominal_amplitudes[self.n_oscillators_body:] = R_limb
+

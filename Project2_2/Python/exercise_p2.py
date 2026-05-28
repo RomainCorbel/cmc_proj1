@@ -10,7 +10,7 @@ def exercise_walk(timestep):
     "[Project 1] Q2 Walking with a fixed drive"
     parameter_set = [
         SimulationParameters(
-            duration=20,
+            duration=100,
             timestep=timestep,
             spawn_position=[0, 0, 0.1],
             spawn_orientation=[0, 0, np.pi/2],
@@ -24,7 +24,7 @@ def exercise_walk(timestep):
         simulation(
             sim_parameters=sim_parameters,
             arena='land',
-            fast=True,
+            fast=False,
             headless=False,
             output=f'logs/exercise2_walk/sim_{simulation_i}',
             record=True,
@@ -55,10 +55,10 @@ def exercise_ramp_swim(timestep):
         simulation(
             sim_parameters=sim_parameters,
             arena='water',
-            fast=True,
-            headless=True,
+            fast=False,
+            headless=False,
             output=f'logs/exercise2_ramp_swim/sim_{simulation_i}',
-            record=True,
+            record=False,
             record_path=f'logs/exercise2_ramp_swim/video_ramp_swim.mp4',
         )
     return
@@ -95,7 +95,36 @@ def exercise_ramp_walk(timestep):
     return
 
 
+def exercise_swim(timestep):
+    "[Project 1] Q2 Swimming with a fixed drive"
+    parameter_set = [
+        SimulationParameters(
+            duration=100,
+            timestep=timestep,
+            spawn_position=[0, 0, 0.1],
+            spawn_orientation=[0, 0, np.pi/2],
+            drive=4.0,
+            phase_lag_body=None,
+            amplitude_gradient=None,
+        )
+    ]
+    os.makedirs('./logs/exercise2_swim/', exist_ok=True)
+    for simulation_i, sim_parameters in enumerate(parameter_set):
+        simulation(
+            sim_parameters=sim_parameters,
+            arena='water',
+            fast=False,
+            headless=False,
+            output=f'logs/exercise2_swim/sim_{simulation_i}',
+            record=True,
+            record_path=f'logs/exercise2_swim/video_swim.mp4',
+        )
+    return
+
+
+
 if __name__ == '__main__':
     exercise_walk(timestep=5e-3)
     # exercise_ramp_swim(timestep=5e-3)
     # exercise_ramp_walk(timestep=5e-3)
+    # exercise_swim(timestep=5e-3)
