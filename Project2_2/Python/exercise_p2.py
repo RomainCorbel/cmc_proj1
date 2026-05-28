@@ -5,12 +5,13 @@ import numpy as np
 from salamandra_simulation.simulation import simulation
 from simulation_parameters import SimulationParameters
 
+VISUALIZATION = False
 
 def exercise_walk(timestep):
     "[Project 1] Q2 Walking with a fixed drive"
     parameter_set = [
         SimulationParameters(
-            duration=100,
+            duration=15,
             timestep=timestep,
             spawn_position=[0, 0, 0.1],
             spawn_orientation=[0, 0, np.pi/2],
@@ -24,10 +25,10 @@ def exercise_walk(timestep):
         simulation(
             sim_parameters=sim_parameters,
             arena='land',
-            fast=False,
-            headless=False,
+            fast=not VISUALIZATION,
+            headless=not VISUALIZATION,
             output=f'logs/exercise2_walk/sim_{simulation_i}',
-            record=True,
+            record=not VISUALIZATION,
             record_path=f'logs/exercise2_walk/video_walk.mp4',
         )
     return
@@ -35,7 +36,7 @@ def exercise_walk(timestep):
 
 def exercise_ramp_swim(timestep):
     "[Project 1] Q2 Swimming with an increasing (ramp) drive"
-    duration = 40
+    duration = 15
     parameter_set = [
         SimulationParameters(
             duration=duration,
@@ -44,7 +45,7 @@ def exercise_ramp_swim(timestep):
             spawn_orientation=[0, 0, np.pi/2],
             drive=1.0,
             drive_ramp_start=1.0,
-            drive_ramp_end=5.0,
+            drive_ramp_end=6.0,
             drive_ramp_duration=duration,
             phase_lag_body=None,
             amplitude_gradient=None,
@@ -55,10 +56,10 @@ def exercise_ramp_swim(timestep):
         simulation(
             sim_parameters=sim_parameters,
             arena='water',
-            fast=False,
-            headless=False,
+            fast=not VISUALIZATION,
+            headless=not VISUALIZATION,
             output=f'logs/exercise2_ramp_swim/sim_{simulation_i}',
-            record=False,
+            record=not VISUALIZATION,
             record_path=f'logs/exercise2_ramp_swim/video_ramp_swim.mp4',
         )
     return
@@ -66,7 +67,7 @@ def exercise_ramp_swim(timestep):
 
 def exercise_ramp_walk(timestep):
     "[Project 1] Q2 Walking with an increasing (ramp) drive"
-    duration = 40
+    duration = 15
     parameter_set = [
         SimulationParameters(
             duration=duration,
@@ -75,7 +76,7 @@ def exercise_ramp_walk(timestep):
             spawn_orientation=[0, 0, np.pi/2],
             drive=1.0,
             drive_ramp_start=1.0,
-            drive_ramp_end=3.0,
+            drive_ramp_end=6.0,
             drive_ramp_duration=duration,
             phase_lag_body=None,
             amplitude_gradient=None,
@@ -86,10 +87,10 @@ def exercise_ramp_walk(timestep):
         simulation(
             sim_parameters=sim_parameters,
             arena='land',
-            fast=True,
-            headless=True,
+            fast=not VISUALIZATION,
+            headless=not VISUALIZATION,
             output=f'logs/exercise2_ramp_walk/sim_{simulation_i}',
-            record=True,
+            record=not VISUALIZATION,
             record_path=f'logs/exercise2_ramp_walk/video_ramp_walk.mp4',
         )
     return
@@ -99,7 +100,7 @@ def exercise_swim(timestep):
     "[Project 1] Q2 Swimming with a fixed drive"
     parameter_set = [
         SimulationParameters(
-            duration=100,
+            duration=15,
             timestep=timestep,
             spawn_position=[0, 0, 0.1],
             spawn_orientation=[0, 0, np.pi/2],
@@ -113,10 +114,10 @@ def exercise_swim(timestep):
         simulation(
             sim_parameters=sim_parameters,
             arena='water',
-            fast=False,
-            headless=False,
+            fast=not VISUALIZATION,
+            headless=not VISUALIZATION,
             output=f'logs/exercise2_swim/sim_{simulation_i}',
-            record=True,
+            record=not VISUALIZATION,
             record_path=f'logs/exercise2_swim/video_swim.mp4',
         )
     return
@@ -125,6 +126,6 @@ def exercise_swim(timestep):
 
 if __name__ == '__main__':
     exercise_walk(timestep=5e-3)
-    # exercise_ramp_swim(timestep=5e-3)
-    # exercise_ramp_walk(timestep=5e-3)
-    # exercise_swim(timestep=5e-3)
+    exercise_ramp_swim(timestep=5e-3)
+    exercise_ramp_walk(timestep=5e-3)
+    exercise_swim(timestep=5e-3)

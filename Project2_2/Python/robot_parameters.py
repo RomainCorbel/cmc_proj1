@@ -83,11 +83,11 @@ def _sat_amp(d, p):
 W_BODY_IPSI   = 10.0   # w_{i,i+1}=20, i∈{1..7}  (body chain)
 W_BODY_CONTRA = 10.0   # within-pair anti-phase (not in Table I, needed for architecture)
 W_LIMB_IPSI   = 10.0   # w_{i,i+2}=20, i∈{9,10}  (FL-HL, FR-HR ipsilateral)
-W_LIMB_CONTRA = 50.0   # w_{i,i+1}=10, i∈{9,11}  (FL-FR, HL-HR contralateral)
-W_LIMB2BODY   = 50.0   # w_{limb,body}=10 walking / 0 swimming  (Table I)
+W_LIMB_CONTRA = 30.0   # w_{i,i+1}=10, i∈{9,11}  (FL-FR, HL-HR contralateral)
+W_LIMB2BODY   = 30.0   # w_{limb,body}=10 walking / 0 swimming  (Table I)
 W_BODY2LIMB   = 0   # symmetric return coupling
 W_LIMB_PAIR   = 10.0   # within limb-joint pair anti-phase
-W_HIP_KNEE    = 50.0   # hip→knee within same leg
+W_HIP_KNEE    = 30.0   # hip→knee within same leg
 
 
 class RobotParameters(dict):
