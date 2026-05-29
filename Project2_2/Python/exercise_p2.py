@@ -5,13 +5,13 @@ import numpy as np
 from salamandra_simulation.simulation import simulation
 from simulation_parameters import SimulationParameters
 
-VISUALIZATION = False
+VISUALIZATION = True
 
 def exercise_walk(timestep):
     "[Project 1] Q2 Walking with a fixed drive"
     parameter_set = [
         SimulationParameters(
-            duration=15,
+            duration=50,
             timestep=timestep,
             spawn_position=[0, 0, 0.1],
             spawn_orientation=[0, 0, np.pi/2],
@@ -126,6 +126,6 @@ def exercise_swim(timestep):
 
 if __name__ == '__main__':
     exercise_walk(timestep=5e-3)
-    exercise_ramp_swim(timestep=5e-3)
-    exercise_ramp_walk(timestep=5e-3)
-    exercise_swim(timestep=5e-3)
+    # exercise_ramp_swim(timestep=5e-3)
+    # exercise_ramp_walk(timestep=5e-3)
+    # exercise_swim(timestep=5e-3)

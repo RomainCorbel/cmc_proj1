@@ -10,7 +10,7 @@ def exercise_walk(timestep):
     "[Project 1] Q2 Walking with fixed drive"
     # Use exercise_example.py for reference
     sim_parameters = SimulationParameters(
-        duration=15,
+        duration=45,
         timestep=timestep,
         spawn_position=[0, 0, 0.10],
         spawn_orientation=[0, 0, np.pi/2],

@@ -27,7 +27,7 @@ BODY = {
     'cv1':   0.2,   # frequency slope  [Hz / drive unit]
     'cv0':   0.3,   # frequency offset [Hz]: nu=0.5 Hz at d=1, nu=1.3 Hz at d=5
     'cr1':   0.065, # amplitude slope  [rad / drive unit]
-    'cr0':   0.196*4, # amplitude offset [rad]: R=0.261 at d=1, R=0.521 at d=5
+    'cr0':   0.196*2, # amplitude offset [rad]: R=0.261 at d=1, R=0.521 at d=5
     'rate':  20.0,  # convergence rate a_i [1/s]: controls r_i -> R_i speed
 }
 
@@ -39,10 +39,10 @@ LIMB = {
     'dhigh': 3.0,   # limbs stop oscillating here; body continues (Hypothesis 3)
     'cv1':   0.2,   # same slope as body but lower range -> lower walk frequencies
     'cv0':   0.0,   # nu=0.2 Hz at d=1, nu=0.6 Hz at d=3
-    'cr1':   0.131,
-    'cr0':   0.131*5, # R=0.262 at d=1, R=0.524 at d=3
+    'cr1':   0.131*10,
+    'cr0':   0.131*10, # R=0.262 at d=1, R=0.524 at d=3
     'rate':  20.0,
-}# " pi/2"
+}
 
 def _sat_freq(d, p):
     """Piece-wise linear frequency saturation (returns nu in Hz)."""
@@ -86,7 +86,7 @@ W_LIMB_IPSI   = 10.0   # w_{i,i+2}=20, i∈{9,10}  (FL-HL, FR-HR ipsilateral)
 W_LIMB_CONTRA = 30.0   # w_{i,i+1}=10, i∈{9,11}  (FL-FR, HL-HR contralateral)
 W_LIMB2BODY   = 30.0   # w_{limb,body}=10 walking / 0 swimming  (Table I)
 W_BODY2LIMB   = 0   # symmetric return coupling
-W_LIMB_PAIR   = 10.0   # within limb-joint pair anti-phase
+W_LIMB_PAIR   = 30.0   # within limb-joint pair anti-phase
 W_HIP_KNEE    = 30.0   # hip→knee within same leg
 
 
@@ -377,11 +377,15 @@ class RobotParameters(dict):
         for leg in range(self.N_LEGS):
             hip_f, hip_e = self._hip_osc(leg)
             kne_f, kne_e = self._knee_osc(leg)
+            print(hip_f, hip_e, kne_f, kne_e,self.N_LEGS)
             w[hip_f, kne_f] = W_HIP_KNEE  # hip flexor  -> knee flexor
             w[kne_f, hip_f] = W_HIP_KNEE
             w[hip_e, kne_e] = W_HIP_KNEE  # hip extensor -> knee extensor
             w[kne_e, hip_e] = W_HIP_KNEE
         np.set_printoptions(threshold=100000, linewidth=1000)
+                # Open Ipython to interact with the code (uv pip install ipython)
+        # This can be useful for exploring the contents of data.sensors for example
+        # from IPython import embed; embed()
         print(w)
     # =========================================================================
     # set_phase_bias

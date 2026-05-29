@@ -40,7 +40,7 @@ phase_biases = {
     'body_ips_down':  -2*np.pi/8,   # inversé
     'body_ips_up':   2*np.pi/8,   # inversé
     'body_contra':    np.pi,
-    'limb_close_body': np.pi,
+    'limb_close_body': np.pi/2, # np.pi,
     'limb_contra':    np.pi,
     'limb_ips':       np.pi ,
     'limb_close_lr':  np.pi,
