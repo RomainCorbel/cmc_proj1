@@ -215,11 +215,12 @@ class RobotParameters(dict):
 
         # 3. Limb-body at girdle
         names_lb = ['FL', 'FR', 'HL', 'HR']
-        # print(f"W3 limb→body (w={W_LIMB2BODY}), body→limb (w={W_BODY2LIMB}):")
+        limb2body_w = 0.0 if getattr(parameters, 'disable_limb_spine_coupling', False) else W_LIMB2BODY
+        # print(f"W3 limb→body (w={limb2body_w}), body→limb (w={W_BODY2LIMB}):")
         for _, (limb_oscs, body_oscs) in zip(names_lb, limb_body):
             for lo in limb_oscs:
                 for bo in body_oscs:
-                    w[lo, bo] = W_LIMB2BODY
+                    w[lo, bo] = limb2body_w
                     w[bo, lo] = W_BODY2LIMB
             # print(f"  {name}: hip{limb_oscs} ↔ body{body_oscs}")
 
@@ -301,14 +302,15 @@ class RobotParameters(dict):
 
         # 5. Limb-body at girdle (flexor in-phase, extensor anti-phase)
         names_lb = ['FL', 'FR', 'HL', 'HR']
+        flexor_bias = np.pi if getattr(parameters, 'limb_spine_antiphase', False) else PHI_LIMB2BODY
         print("P5 limb→body girdle:")
         for name, (limb_oscs, body_oscs) in zip(names_lb, limb_body):
             for i, lo in enumerate(limb_oscs):
-                bias = PHI_LIMB2BODY if i % 2 == 0 else PHI_LIMB_PAIR
+                bias = flexor_bias if i % 2 == 0 else PHI_LIMB_PAIR
                 for bo in body_oscs:
                     phi[lo, bo] = bias
                     phi[bo, lo] = -bias
-            print(f"  {name}: hip{limb_oscs} ↔ body{body_oscs}  (flexor phi={PHI_LIMB2BODY:.3f}, extensor phi={PHI_LIMB_PAIR:.3f})")
+            print(f"  {name}: hip{limb_oscs} ↔ body{body_oscs}  (flexor phi={flexor_bias:.3f}, extensor phi={PHI_LIMB_PAIR:.3f})")
 
         # 6. Hip-knee within same leg
         pairs = []

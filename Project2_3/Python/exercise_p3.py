@@ -4,20 +4,54 @@ import os
 import numpy as np
 from salamandra_simulation.simulation import simulation, simulation_sweep
 from simulation_parameters import SimulationParameters
-import farms_pylog as pylog
+#import farms_pylog as pylog
 
 
 def exercise_3_disable_limb_spine_coupling(timestep):
     """ Walk with disabled limb-spine limbs """
-    # Use exercise_example.py for reference
-    pass
+    parameter_set = [
+        SimulationParameters(
+            duration=20,
+            timestep=timestep,
+            spawn_position=[0, 0, 0.1],
+            spawn_orientation=[0, 0, np.pi/2],
+            drive=2.0,
+            disable_limb_spine_coupling=True,
+        )
+    ]
+    os.makedirs('./logs/exercise3_disable_coupling/', exist_ok=True)
+    for simulation_i, sim_parameters in enumerate(parameter_set):
+        simulation(
+            sim_parameters=sim_parameters,
+            arena='land',
+            fast=False,
+            headless=False,
+            output=f'logs/exercise3_disable_coupling/sim_{simulation_i}',
+        )
     return
 
 
 def exercise_3_limb_spine_antiphase(timestep):
     """ Walk with limb-spine in anti-phase """
-    # Use exercise_example.py for reference
-    pass
+    parameter_set = [
+        SimulationParameters(
+            duration=20,
+            timestep=timestep,
+            spawn_position=[0, 0, 0.1],
+            spawn_orientation=[0, 0, np.pi/2],
+            drive=2.0,
+            limb_spine_antiphase=True,
+        )
+    ]
+    os.makedirs('./logs/exercise3_antiphase/', exist_ok=True)
+    for simulation_i, sim_parameters in enumerate(parameter_set):
+        simulation(
+            sim_parameters=sim_parameters,
+            arena='land',
+            fast=False,
+            headless=False,
+            output=f'logs/exercise3_antiphase/sim_{simulation_i}',
+        )
     return
 
 
@@ -68,8 +102,8 @@ def exercise_3b_coordination(timestep):
 
 
 if __name__ == '__main__':
-    exercise_3_disable_limb_spine_coupling(timestep=5e-3)
+    #exercise_3_disable_limb_spine_coupling(timestep=5e-3)
     exercise_3_limb_spine_antiphase(timestep=5e-3)
-    exercise_3a_coordination(timestep=5e-3)
-    exercise_3b_coordination(timestep=5e-3)
+    #exercise_3a_coordination(timestep=5e-3)
+    #exercise_3b_coordination(timestep=5e-3)
 
