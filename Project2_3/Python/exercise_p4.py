@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 from salamandra_simulation.simulation import simulation
 from simulation_parameters import SimulationParameters
-import farms_pylog as pylog
+#import farms_pylog as pylog
 
 
 def exercise_4a_transition(timestep):
@@ -40,21 +40,47 @@ def exercise_4a_transition(timestep):
         ...
 
     """
-    # Use exercise_example.py for reference
-    # Additional hints:
-    # sim_parameters = SimulationParameters(
-    #     ...,
-    #     spawn_position=[4, 0, 0.0],
-    #     spawn_orientation=[0, 0, np.pi],
-    # )
-    # _sim, _data = simulation(
-    #     sim_parameters=sim_parameters,
-    #     arena='amphibious',
-    #     fast=True,
-    #     record=True,
-    #     record_path='walk2swim',  # or swim2walk
-    # )
-    pass
+    os.makedirs('./logs/exercise4a/sim_0', exist_ok=True)
+    os.makedirs('./logs/exercise4a/sim_1', exist_ok=True)
+
+    # Swim → Walk: start in water (x < 0), high drive, facing land
+    sim_parameters_s2w = SimulationParameters(
+        duration=30,
+        timestep=timestep,
+        spawn_position=[2, 0, 0.1],
+        spawn_orientation=[0, 0, 0],
+        drive=4.0,
+        update_drive='swim2walk',
+    )
+    
+    """simulation(
+        sim_parameters=sim_parameters_s2w,
+        arena='amphibious',
+        fast=True,
+        record=True,
+        record_path='logs/exercise4a/swim2walk.mp4',
+        output='logs/exercise4a/sim_0',
+    )"""
+    
+    # Walk → Swim: start on land (x < 0), low drive, facing water
+    sim_parameters_w2s = SimulationParameters(
+        duration=50,
+        timestep=timestep,
+        spawn_position=[-1, 0, 0.1],
+        spawn_orientation=[0, 0, np.pi],
+        drive=2.0,
+        update_drive='walk2swim',
+    )
+
+    simulation(
+        sim_parameters=sim_parameters_w2s,
+        arena='amphibious',
+        fast=True,
+        record=True,
+        record_path='logs/exercise4a/walk2swim.mp4',
+        output='logs/exercise4a/sim_1',
+    )
+
     return
 
 

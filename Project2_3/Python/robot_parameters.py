@@ -19,7 +19,7 @@ LIMB = {
     'cv1':   0.2,
     'cv0':   0.0,
     'cr1':   0.131,
-    'cr0':   0.131*10,
+    'cr0':   0.131*7,
     'rate':  20.0,
 }
 
@@ -27,13 +27,13 @@ W_BODY_IPSI   = 10.0   # body: adjacent oscillators, same side, ex: 2,4
 W_BODY_CONTRA = 10.0   # body: same position, left↔right oscillators ex: 0,1
 W_LIMB_IPSI   = 10.0   # legs: front↔hind oscillators, same side (FL↔HL, FR↔HR)
 W_LIMB_CONTRA = 30.0   # legs: same girdle, left↔right oscillators (FL↔FR, HL↔HR)
-W_LIMB2BODY   = 30.0   # limb hip oscillators → body girdle oscillators
+W_LIMB2BODY   = 10.0   # limb hip oscillators → body girdle oscillators
 W_BODY2LIMB   = 0      # body girdle → limb hip oscillators (0 = unidirectional)
 W_LIMB_PAIR   = 30.0   # within joint: flexor↔extensor oscillators of same hip or knee
 W_HIP_KNEE    = 30.0   # within leg: hip↔knee oscillators
 
 PHI_BODY_WALK   = 0.0               # body: phase lag between adjacent oscillators (walking)
-PHI_BODY_SWIM   = 2.0 * np.pi / 9.0 # body: phase lag between adjacent oscillators (swimming)
+PHI_BODY_SWIM   = 2.0 * np.pi / 8.0 # body: phase lag between adjacent oscillators (swimming)
 PHI_BODY_CONTRA = np.pi             # body left↔right oscillators: anti-phase
 PHI_LIMB_PAIR   = np.pi             # flexor↔extensor oscillators of same joint: anti-phase
 PHI_LIMB_IPSI   = np.pi             # ipsilateral front↔hind oscillators: anti-phase (trot)
@@ -82,6 +82,8 @@ class RobotParameters(dict):
         self.nominal_amplitudes = np.zeros(self.n_oscillators)
 
         self.sim_parameters = parameters
+        self.update_drive = getattr(parameters, 'update_drive', False)
+        self._transitioned = False
         self.update(parameters)
 
     def _body_left(self):
@@ -116,10 +118,10 @@ class RobotParameters(dict):
             (fl, fr, W_LIMB_CONTRA, PHI_LIMB_CONTRA),  # FL↔FR contralateral
             (hl, hr, W_LIMB_CONTRA, PHI_LIMB_CONTRA),  # HL↔HR contralateral
         ]
-        names_il = ['FL↔HL', 'FR↔HR', 'FL↔FR', 'HL↔HR']
-        print("inter_leg (pair_a, pair_b, weight, phase_bias):")
-        for name, (a, b, w, phi) in zip(names_il, inter_leg):
-            print(f"  {name}: {a} ↔ {b}  w={w}  phi={phi:.3f}")
+        # names_il = ['FL↔HL', 'FR↔HR', 'FL↔FR', 'HL↔HR']
+        # print("inter_leg (pair_a, pair_b, weight, phase_bias):")
+        # for name, (a, b, w, phi) in zip(names_il, inter_leg):
+        #     print(f"  {name}: {a} ↔ {b}  w={w}  phi={phi:.3f}")
         return left, right, limb_body, inter_leg
 
     def update(self, parameters):
@@ -139,6 +141,52 @@ class RobotParameters(dict):
             self.set_frequencies(self.sim_parameters)
             self.set_nominal_amplitudes(self.sim_parameters)
 
+        if self.update_drive and not self._transitioned:
+            index = 0 if iteration == 0 else (iteration - 1)
+            contacts_all = np.linalg.norm(np.array(
+                salamandra_data.sensors.contacts.totals()[index]
+            ), axis=1)
+            contacts_feet = contacts_all[10:18:2]
+
+            if self.update_drive == 'swim2walk':
+                if np.any(contacts_feet > 0):
+                    self._transition_time = time
+                    self._ramp_d0 = self.sim_parameters.drive
+                    self._ramp_d1 = 2.0
+                    self._ramp_duration = 3.0
+                    self._transitioned = True
+
+            elif self.update_drive == 'walk2swim':
+                if iteration > 200 and np.all(contacts_feet == 0):
+                    self._no_contact_count = self.get('_no_contact_count', 0) + 1
+                else:
+                    self._no_contact_count = 0
+                if self.get('_no_contact_count', 0) > 200:
+                    self._transition_time = time
+                    self._ramp_d0 = self.sim_parameters.drive
+                    self._ramp_d1 = 4.0
+                    self._ramp_duration = 3.0
+                    self._transitioned = True
+
+        # update phase bias once when transition is first detected
+        if self._transitioned and not self.get('_phase_bias_updated', False):
+            old_drive = self.sim_parameters.drive
+            self.sim_parameters.drive = self._ramp_d1
+            self.set_phase_bias(self.sim_parameters)
+            self.sim_parameters.drive = old_drive
+            self._phase_bias_updated = True
+
+        # linear drive ramp after transition (same logic as exercise_p2 ramp)
+        if self._transitioned and '_ramp_d0' in self:
+            elapsed = time - self._transition_time
+            alpha = min(elapsed / self._ramp_duration, 1.0)
+            d = self._ramp_d0 + (self._ramp_d1 - self._ramp_d0) * alpha
+            self.sim_parameters.drive = d
+            self.set_frequencies(self.sim_parameters)
+            self.set_nominal_amplitudes(self.sim_parameters)
+            if alpha >= 1.0:
+                self.pop('_ramp_d0')  # stop updating once ramp is complete
+
     def set_frequencies(self, parameters):
         d = parameters.drive
         self.freqs[:self.n_oscillators_body] = 2.0 * np.pi * _sat_freq(d, BODY)
@@ -156,24 +204,24 @@ class RobotParameters(dict):
             for side in (left, right):
                 w[side[i], side[i+1]] = w[side[i+1], side[i]] = W_BODY_IPSI
                 pairs.append(f"[{side[i]},{side[i+1]}]")
-        print(f"W1 body ipsi (w={W_BODY_IPSI}): {' '.join(pairs)}")
+        # print(f"W1 body ipsi (w={W_BODY_IPSI}): {' '.join(pairs)}")
 
         # 2. Body contralateral same-segment
         pairs = []
         for i in range(n):
             w[left[i], right[i]] = w[right[i], left[i]] = W_BODY_CONTRA
             pairs.append(f"[{left[i]},{right[i]}]")
-        print(f"W2 body contra (w={W_BODY_CONTRA}): {' '.join(pairs)}")
+        # print(f"W2 body contra (w={W_BODY_CONTRA}): {' '.join(pairs)}")
 
         # 3. Limb-body at girdle
         names_lb = ['FL', 'FR', 'HL', 'HR']
-        print(f"W3 limb→body (w={W_LIMB2BODY}), body→limb (w={W_BODY2LIMB}):")
-        for name, (limb_oscs, body_oscs) in zip(names_lb, limb_body):
+        # print(f"W3 limb→body (w={W_LIMB2BODY}), body→limb (w={W_BODY2LIMB}):")
+        for _, (limb_oscs, body_oscs) in zip(names_lb, limb_body):
             for lo in limb_oscs:
                 for bo in body_oscs:
                     w[lo, bo] = W_LIMB2BODY
                     w[bo, lo] = W_BODY2LIMB
-            print(f"  {name}: hip{limb_oscs} ↔ body{body_oscs}")
+            # print(f"  {name}: hip{limb_oscs} ↔ body{body_oscs}")
 
         # 4. Within-joint pair (flexor-extensor)
         pairs = []
@@ -181,15 +229,15 @@ class RobotParameters(dict):
             even = self.n_oscillators_body + 2 * j
             w[even, even+1] = w[even+1, even] = W_LIMB_PAIR
             pairs.append(f"[{even},{even+1}]")
-        print(f"W4 limb pair flexor↔extensor (w={W_LIMB_PAIR}): {' '.join(pairs)}")
+        # print(f"W4 limb pair flexor↔extensor (w={W_LIMB_PAIR}): {' '.join(pairs)}")
 
         # 5. Inter-leg hip coupling
         names_il = ['FL↔HL', 'FR↔HR', 'FL↔FR', 'HL↔HR']
-        print("W5 inter-leg hips:")
+        # print("W5 inter-leg hips:")
         for name, (pair_a, pair_b, weight, _) in zip(names_il, inter_leg):
             for oa, ob in zip(pair_a, pair_b):
                 w[oa, ob] = w[ob, oa] = weight
-            print(f"  {name} (w={weight}): {list(zip(pair_a, pair_b))}")
+            # print(f"  {name} (w={weight}): {list(zip(pair_a, pair_b))}")
 
         # 6. Hip-knee within same leg
         pairs = []
@@ -199,7 +247,7 @@ class RobotParameters(dict):
             w[hip_f, kne_f] = w[kne_f, hip_f] = W_HIP_KNEE
             w[hip_e, kne_e] = w[kne_e, hip_e] = W_HIP_KNEE
             pairs.append(f"[{hip_f},{kne_f}] [{hip_e},{kne_e}]")
-        print(f"W6 hip↔knee (w={W_HIP_KNEE}): {' '.join(pairs)}")
+        # print(f"W6 hip↔knee (w={W_HIP_KNEE}): {' '.join(pairs)}")
 
     def set_phase_bias(self, parameters):
         phi = self.phase_bias
