@@ -8,8 +8,8 @@ BODY = {
     'dhigh': 5.0,
     'cv1':   0.2,
     'cv0':   0.3,
-    'cr1':   0.065,
-    'cr0':   0.196*2,
+    'cr1':   0.5,#0.065*4,#*1.5,
+    'cr0':   0,#0.196,#*2,
     'rate':  20.0,
 }
 
@@ -18,8 +18,8 @@ LIMB = {
     'dhigh': 3.0,
     'cv1':   0.2,
     'cv0':   0.0,
-    'cr1':   0.131,
-    'cr0':   0.131*7,
+    'cr1':   0.025,#0.131*2.5,
+    'cr0':   0.575,#0.131*2,#*6,
     'rate':  20.0,
 }
 
@@ -27,7 +27,7 @@ W_BODY_IPSI   = 10.0   # body: adjacent oscillators, same side, ex: 2,4
 W_BODY_CONTRA = 10.0   # body: same position, left↔right oscillators ex: 0,1
 W_LIMB_IPSI   = 10.0   # legs: front↔hind oscillators, same side (FL↔HL, FR↔HR)
 W_LIMB_CONTRA = 30.0   # legs: same girdle, left↔right oscillators (FL↔FR, HL↔HR)
-W_LIMB2BODY   = 10.0   # limb hip oscillators → body girdle oscillators
+W_LIMB2BODY   = 30.0   # limb hip oscillators → body girdle oscillators
 W_BODY2LIMB   = 0      # body girdle → limb hip oscillators (0 = unidirectional)
 W_LIMB_PAIR   = 30.0   # within joint: flexor↔extensor oscillators of same hip or knee
 W_HIP_KNEE    = 30.0   # within leg: hip↔knee oscillators
@@ -157,7 +157,8 @@ class RobotParameters(dict):
                     self._transitioned = True
 
             elif self.update_drive == 'walk2swim':
-                if iteration > 200 and np.all(contacts_feet == 0):
+                contacts_front_feet = contacts_all[10:13:2]  # FL and FR feet only
+                if iteration > 200 and np.all(contacts_front_feet == 0):
                     self._no_contact_count = self.get('_no_contact_count', 0) + 1
                 else:
                     self._no_contact_count = 0
@@ -320,7 +321,7 @@ class RobotParameters(dict):
             phi[hip_f, kne_f] = PHI_HIP_KNEE;  phi[kne_f, hip_f] = -PHI_HIP_KNEE
             phi[hip_e, kne_e] = PHI_HIP_KNEE;  phi[kne_e, hip_e] = -PHI_HIP_KNEE
             pairs.append(f"[{hip_f},{kne_f}] [{hip_e},{kne_e}]")
-        print(f"P6 hip↔knee (phi={PHI_HIP_KNEE:.3f}): {' '.join(pairs)}")
+        print(phi)
 
     def set_amplitudes_rate(self, parameters):
         self.rates[:self.n_oscillators_body] = BODY['rate']

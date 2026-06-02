@@ -11,6 +11,7 @@ from salamandra_simulation.parse_args import save_plots
 from salamandra_simulation.save_figures import save_figures
 from simulation_parameters import SimulationParameters
 from network import SalamandraNetwork
+from robot_parameters import BODY, LIMB
 
 
 @dataclass
@@ -73,12 +74,17 @@ def run_network(duration, update=True, drive=0, timestep=1e-2):
 
     # Run network ODE and log data
     tic = time.time()
+    prev_mode = None
     for i, time0 in enumerate(times[1:]):
         if update:
             current_drive = drive[i+1] if hasattr(drive, '__len__') else drive
             sp = SimulationParameters(drive=current_drive)
             network.robot_parameters.set_frequencies(sp)
             network.robot_parameters.set_nominal_amplitudes(sp)
+            current_mode = 'swim' if current_drive > 3.0 else 'walk'
+            if current_mode != prev_mode:
+                network.robot_parameters.set_phase_bias(sp)
+                prev_mode = current_mode
         network.step(i, time0, timestep)
         phases_log[i+1, :] = network.state.phases(iteration=i+1)
         amplitudes_log[i+1, :] = network.state.amplitudes(iteration=i+1)
@@ -101,26 +107,35 @@ def run_network(duration, update=True, drive=0, timestep=1e-2):
     # Drive trajectory for plotting
     drive_plot = drive if hasattr(drive, '__len__') else np.full(n_iterations, drive)
 
-    label = f'{"B" if update else "A"}_network_dynamics'
+    drive_val = drive if not hasattr(drive, '__len__') else 'ramp'
+    label = f'{"B" if update else "A"}_network_dynamics_d{drive_val}'
     fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True, num=label)
     part = 'Part B' if update else 'Part A'
-    fig.suptitle(f'{part} - CPG Network Dynamics (duration={duration}s)')
+    fig.suptitle(f'{part} - CPG Network Dynamics (d={drive_val}, duration={duration}s)')
 
     # A: body left oscillator activations (waterfall, head at top)
-    offset = 1.2
-    for k, idx in enumerate(osc_left):
-        axes[0].plot(times, outputs[:, idx] + k * offset, color='steelblue', linewidth=0.8)
+    body_offset = 1.2
+    for k, idx in enumerate(reversed(osc_left)):
+        axes[0].plot(times, outputs[:, idx] + k * body_offset, color='steelblue', linewidth=0.8)
     axes[0].set_ylabel('Body (L)\nactivation')
     axes[0].set_yticks([])
 
     # B: limb activations — first oscillator of each limb
-    for k, idx in enumerate(osc_legs[::4]):
-        axes[1].plot(times, outputs[:, idx] + k * offset, color='darkorange', linewidth=0.8)
+    limb_offset = 2.5
+    limb_indices = list(osc_legs[::4])
+    for k, idx in enumerate(limb_indices):
+        axes[1].plot(times, outputs[:, idx] + k * limb_offset, color='darkorange', linewidth=0.8)
     axes[1].set_ylabel('Limb\nactivation')
     axes[1].set_yticks([])
+    axes[1].set_ylim([-0.5, limb_offset * (len(limb_indices) - 1) + 3.0])
 
-    # C: mean instantaneous frequency of left body oscillators
-    axes[2].plot(times[1:], np.mean(inst_freq[:, osc_left], axis=1), color='black')
+    # C: instantaneous frequency of all oscillators
+    for idx in osc_left:
+        axes[2].plot(times[1:], inst_freq[:, idx], color='steelblue', linewidth=0.6, alpha=0.7)
+    for idx in osc_right:
+        axes[2].plot(times[1:], inst_freq[:, idx], color='cornflowerblue', linewidth=0.6, alpha=0.5)
+    for idx in osc_legs:
+        axes[2].plot(times[1:], inst_freq[:, idx], color='darkorange', linewidth=0.6, alpha=0.7)
     axes[2].set_ylabel('Freq [Hz]')
     axes[2].set_ylim([0, 2])
 
@@ -133,8 +148,8 @@ def run_network(duration, update=True, drive=0, timestep=1e-2):
 
     # Oscillator properties figure (Ijspeert Fig. 5 equivalent) — Part B only
     if update:
-        bod = network.robot_parameters.body_data
-        leg = network.robot_parameters.limb_data
+        bod = BODY
+        leg = LIMB
 
         # Analytical curves: ν(d) and R(d)
         d_vals = np.linspace(0, 6, 300)
@@ -209,8 +224,9 @@ def run_network(duration, update=True, drive=0, timestep=1e-2):
 def exercise_1a_networks(plot, timestep=1e-2):
     """[Project 1] Exercise 1: """
 
-    # Exercise 1A: fixed drive in walking regime to verify network
+    # Exercise 1A: fixed drive — walking regime (d=2) then swimming regime (d=4)
     run_network(duration=10, update=False, drive=2.0, timestep=timestep)
+    run_network(duration=10, update=False, drive=4.0, timestep=timestep)
 
     # Exercise 1B: linearly increasing drive 0 -> 6 over 20s (Ijspeert 2007 Fig. 2)
     duration_ramp = 20

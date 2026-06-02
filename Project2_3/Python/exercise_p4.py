@@ -53,18 +53,18 @@ def exercise_4a_transition(timestep):
         update_drive='swim2walk',
     )
     
-    """simulation(
+    simulation(
         sim_parameters=sim_parameters_s2w,
         arena='amphibious',
         fast=True,
         record=True,
         record_path='logs/exercise4a/swim2walk.mp4',
         output='logs/exercise4a/sim_0',
-    )"""
+    )
     
     # Walk → Swim: start on land (x < 0), low drive, facing water
     sim_parameters_w2s = SimulationParameters(
-        duration=50,
+        duration=30,
         timestep=timestep,
         spawn_position=[-1, 0, 0.1],
         spawn_orientation=[0, 0, np.pi],
