@@ -331,10 +331,17 @@ class RobotParameters(dict):
         if not hasattr(parameters, 'drive'):
             pylog.warning('No drive parameter; nominal amplitudes left at zero.')
             return
+        
+        axial_gain = 1
+        limb_gain = 1
+        if hasattr(parameters, 'axial_amp_gain') and parameters.axial_amp_gain is not None:
+            axial_gain = parameters.axial_amp_gain
+        if hasattr(parameters, 'limb_amp_gain') and parameters.limb_amp_gain is not None:
+            limb_gain = parameters.limb_amp_gain
 
         d = parameters.drive
-        R_body = _sat_amp(d, BODY)
-        R_limb = _sat_amp(d, LIMB)
+        R_body = _sat_amp(d, BODY)*axial_gain
+        R_limb = _sat_amp(d, LIMB)*limb_gain
 
         gradient = 0.0
         if hasattr(parameters, 'amplitude_gradient') and parameters.amplitude_gradient is not None:
