@@ -3,8 +3,8 @@ units:
   seconds: 1
   kilograms: 1
 runtime:
-  n_iterations: 10000
-  buffer_size: 10000
+  n_iterations: 3000
+  buffer_size: 3000
   play: true
   rtl: 1.0
   fast: false

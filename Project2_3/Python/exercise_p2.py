@@ -11,7 +11,7 @@ def exercise_walk(timestep):
     "[Project 1] Q2 Walking with a fixed drive"
     parameter_set = [
         SimulationParameters(
-            duration=50,
+            duration=15,
             timestep=timestep,
             spawn_position=[0, 0, 0.1],
             spawn_orientation=[0, 0, np.pi/2],
@@ -36,7 +36,7 @@ def exercise_walk(timestep):
 
 def exercise_ramp_swim(timestep):
     "[Project 1] Q2 Swimming with an increasing (ramp) drive"
-    duration = 15
+    duration = 40
     parameter_set = [
         SimulationParameters(
             duration=duration,
@@ -67,7 +67,7 @@ def exercise_ramp_swim(timestep):
 
 def exercise_ramp_walk(timestep):
     "[Project 1] Q2 Walking with an increasing (ramp) drive"
-    duration = 15
+    duration = 40
     parameter_set = [
         SimulationParameters(
             duration=duration,
@@ -126,6 +126,6 @@ def exercise_swim(timestep):
 
 if __name__ == '__main__':
     exercise_walk(timestep=5e-3)
-    #exercise_ramp_swim(timestep=5e-3)
-    #exercise_ramp_walk(timestep=5e-3)
+    exercise_ramp_swim(timestep=5e-3)
+    exercise_ramp_walk(timestep=5e-3)
     exercise_swim(timestep=5e-3)

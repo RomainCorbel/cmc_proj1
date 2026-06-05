@@ -3,12 +3,12 @@ units:
   seconds: 1
   kilograms: 1
 runtime:
-  n_iterations: 3000
-  buffer_size: 3000
+  n_iterations: 8000
+  buffer_size: 8000
   play: true
   rtl: 1.0
-  fast: true
-  headless: true
+  fast: false
+  headless: false
   show_progress: true
 physics:
   timestep: 0.005
@@ -62,20 +62,3 @@ extensions:
     azimuth: 70
     elevation: -30
     angular_velocity: 0
-- loader: farms_mujoco.sensors.camera.CameraRecording
-  config:
-    path: logs/exercise2_ramp_walk/video_ramp_walk.mp4
-    animat_id: 0
-    fps: 30
-    speed: 1.0
-    azimuth: -30
-    elevation: -15
-    distance: 2
-    angular_velocity: 0
-    offset:
-    - 0
-    - 0
-    - 0
-    resolution:
-    - 1280
-    - 720
